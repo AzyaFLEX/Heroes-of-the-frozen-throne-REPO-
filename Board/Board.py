@@ -171,8 +171,8 @@ class Board:
                 for elm in union_dict.keys():
                     if self.chosen_unit.unit.moved >= union_dict[elm]:
                         self.hexagons_to_move[elm] = union_dict[elm]
-                    if all([elm.unit, elm.unit.player != self.turn,
-                            self.chosen_unit.unit.attack_range >= union_dict[elm]]):
+                    if elm.unit and elm.unit.player != self.turn \
+                            and self.chosen_unit.unit.attack_range >= union_dict[elm]:
                         self.hexagons_to_attack[elm] = union_dict[elm]
             for elm in self.hexagons_to_move.keys():
                 if elm.unit is None:
