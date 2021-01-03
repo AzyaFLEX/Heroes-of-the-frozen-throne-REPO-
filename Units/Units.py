@@ -2,16 +2,20 @@ from pygame import draw, Color
 
 
 class BaseUnit:
-    def __init__(self, player, move_per_round=20, attack_range=0, spells=0):
-        self.damage = 0
-        self.health = 0
-        self.full_health = 0
+    def __init__(self, player, hexagon, move_per_round=20, attack_range=0, spells=0):
+        self.damage = 999
+        self.health = 99
+        self.mana = 999
+        self.full_mana = 999
+        self.full_health = 999
         self.player = player
         self.spells = spells
+        self.hexagon = hexagon
         self.attacked = False
         self.attack_range = attack_range
         self.moves_per_round = move_per_round
         self.moved = move_per_round
+        self.activated_spells = [False for _ in range(spells)]
         self.color = Color("red")
 
     def __str__(self):
@@ -20,8 +24,9 @@ class BaseUnit:
     def __repr__(self):
         return self.__str__()
 
-    def get_full_health(self):
+    def get_full(self):
         self.full_health = self.health
+        self.full_mana = self.mana
 
     def move(self, move):
         self.moved -= move
@@ -39,26 +44,49 @@ class BaseUnit:
             self.moved = 0
             self.attacked = True
             self.health -= round(enemy_unit.damage / 3)
-            return True
-        return False
+            return True, enemy_unit.health <= 0
+        return False, False
 
     def update(self):
+        # Проверка на активность скиллов у всех персонажей
+        pass
+
+    def refresh(self):
         self.moved = self.moves_per_round
         self.attacked = False
 
 
 class Worker(BaseUnit):
-    def __init__(self, player):
-        super().__init__(player, 2)
+    def __init__(self, player, hexagon):
+        super().__init__(player, hexagon, 20, 0, 1)
         self.health = 50
-        self.get_full_health()
+        self.mana = 0
+        self.get_full()
         self.color = Color("white")
+
+    def update(self):
+        if self.moved and any(self.hexagon.tile.resources):
+            self.activated_spells[0] = True
+
+    def spell_1(self):
+        pass
 
 
 class Warrior(BaseUnit):
-    def __init__(self, player):
-        super().__init__(player, 4, 1)
+    def __init__(self, player, hexagon):
+        super().__init__(player, hexagon, 4, 1)
         self.health = 50
+        self.mana = 0
         self.damage = 25
-        self.get_full_health()
+        self.get_full()
         self.color = Color("blue")
+
+
+class Wizard(BaseUnit):
+    def __init__(self, player, hexagon):
+        super().__init__(player, hexagon, 3, 3)
+        self.health = 30
+        self.mana = 20
+        self.damage = 30
+        self.get_full()
+        self.color = Color("pink")
