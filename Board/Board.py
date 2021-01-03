@@ -35,7 +35,6 @@ class Board:
         self.chosen_unit = None
         self.hexagons_to_move = {}
         self.hexagons_to_attack = {}
-        self.fix = []
         self.changing_camera_pos = False
         self.camera_zooming = 0
         self.camera_pos = [0, 0]
@@ -50,7 +49,6 @@ class Board:
         self.generate()
 
     def generate(self):
-        # Создание тронов
         self.throne_0 += [
             self.board[len(self.board) // 2 - 1][0],
             self.board[len(self.board) // 2][0],
@@ -69,7 +67,6 @@ class Board:
             elm.set_tile(Throne(0))
         for elm in self.throne_1:
             elm.set_tile(Throne(1))
-        # Добавление ресурсов
         for _ in range(20):
             tile = choice(self.board[randint(0, len(self.board)) - 1]).tile
             if tile.useful and not any(tile.resources):
@@ -198,8 +195,7 @@ class Board:
             return obj
 
     def chose_unit(self, hexagon):
-        if self.hexagons_to_move:
-            self.hexagons_to_move = {}
+        self.clear_chosen_unit()
         if not hexagon or hexagon.unit is None or hexagon.unit.player != self.turn:
             self.chosen_unit = None
         else:
@@ -239,7 +235,6 @@ class Board:
         self.chosen_unit = None
         self.hexagons_to_move = {}
         self.hexagons_to_attack = {}
-        self.fix = []
 
     def use_throne_menu(self, pos):
         # TODO Арсений
@@ -343,9 +338,9 @@ class Board:
                                         else:
                                             self.chose_unit(chosen_hexagon)
                                     else:
-                                        self.chose_unit(chosen_hexagon)
+                                        self.clear_chosen_unit()
                                 else:
-                                    self.chose_unit(chosen_hexagon)
+                                    self.clear_chosen_unit()
                             elif chosen_hexagon.unit:
                                 self.chose_unit(chosen_hexagon)
                             else:
