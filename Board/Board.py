@@ -240,10 +240,6 @@ class Board:
         # TODO Арсений
         pass
 
-    def use_hud(self, pos):
-        # TODO Артём
-        pass
-
     def health_bar(self):
         for hexagon in self.health_bars:
             pygame.draw.rect(self.screen, Color("black"),
@@ -307,11 +303,12 @@ class Board:
             spell_box_side = self.height - (start_pos[1] + 6 * indent + 2 * attack.get_height()) - indent
             top_tab = start_pos[1] + (6.3 if self.chosen_unit.unit.mana else 5) * indent + 2 * attack.get_height()
             tab = (bar_width - 4 * spell_box_side) / 3
-            for num in range(4):
+            left_tab = ((4 * spell_box_side + 3 * tab) - (
+                    self.chosen_unit.unit.spells * spell_box_side + (self.chosen_unit.unit.spells - 1) * tab)) / 2
+            for num in range(self.chosen_unit.unit.spells):
                 pygame.draw.rect(self.screen, pygame.Color("white"),
-                                 (text_x + (spell_box_side + tab) * num,
-                                  top_tab,
-                                  spell_box_side, spell_box_side), 1)
+                                 (left_tab + text_x + (spell_box_side + tab) * num,
+                                  top_tab, spell_box_side, spell_box_side), 1)
 
     def update(self):
         for event in pygame.event.get():

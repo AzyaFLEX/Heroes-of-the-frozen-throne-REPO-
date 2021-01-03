@@ -84,7 +84,7 @@ class Warrior(BaseUnit):
 
 class Wizard(BaseUnit):
     def __init__(self, player, hexagon):
-        super().__init__(player, hexagon, 3, 3)
+        super().__init__(player, hexagon, 3, 3, 2)
         self.health = 30
         self.mana = 20
         self.damage = 30
