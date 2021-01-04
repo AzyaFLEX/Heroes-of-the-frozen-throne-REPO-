@@ -2,6 +2,7 @@ from Cell.Tiles import *
 from Cell.Hexagon import Hexagon
 from Units.Units import *
 from random import choice, randint
+from math import ceil
 import pygame
 
 
@@ -14,8 +15,8 @@ class Board:
         self.diagonal = cell_size * (3 ** 0.5)
         self.rendering = True
         self.fps = 60
-        self.board = [[Hexagon((j, i), (round(cell_size + cell_size * 1.5 * j),
-                                        round(self.diagonal // 2 + self.diagonal * i + (
+        self.board = [[Hexagon((j, i), (ceil(cell_size + cell_size * 1.5 * j),
+                                        ceil(self.diagonal // 2 + self.diagonal * i + (
                                             self.diagonal // 2 if not j % 2 else 0))),
                                tuple(map(lambda x: (x[0] + cell_size * 1.5 * j,
                                                     x[1] + self.diagonal * i + (
@@ -111,9 +112,9 @@ class Board:
     def draw_hex_map(self):
         for i in range(len(self.board)):
             for j in range(len(self.board[0])):
-                if self.board[i][j].tile.can_move:
+                if not self.board[i][j].tile.fill:
                     pygame.draw.polygon(self.screen, self.board[i][j].tile.color, self.board[i][j].points,
-                                        round(2 * (self.cell_size / self.start_cell_size))
+                                        ceil(2 * (self.cell_size / self.start_cell_size))
                                         if self.board[i][j] == self.chosen_unit else 1)
                 else:
                     pygame.draw.polygon(self.screen, self.board[i][j].tile.color, self.board[i][j].points)
@@ -214,7 +215,6 @@ class Board:
                 self.chosen_unit.unit.hexagon = to_hexagon
                 self.chosen_unit.unit.move(self.hexagons_to_move[to_hexagon])
                 self.board[to_hexagon.index[1]][to_hexagon.index[0]].unit = self.chosen_unit.unit
-                self.chosen_unit.unit.update()
                 self.chosen_unit.unit = None
                 self.chosen_unit = self.board[to_hexagon.index[1]][to_hexagon.index[0]]
                 self.hexagons_to_move = {}
@@ -299,13 +299,12 @@ class Board:
                 self.draw_double_bar(("blue", "white"), (text_x, start_pos[1] + 4 * indent + attack.get_height()
                                                          + char_class.get_height(), bar_width, 1.3 * indent),
                                      self.chosen_unit.unit.mana / (self.chosen_unit.unit.full_mana / 100), 1)
-
+            count_spells = len(list(filter(lambda x: x, self.chosen_unit.unit.spells)))
             spell_box_side = self.height - (start_pos[1] + 6 * indent + 2 * attack.get_height()) - indent
             top_tab = start_pos[1] + (6.3 if self.chosen_unit.unit.mana else 5) * indent + 2 * attack.get_height()
             tab = (bar_width - 4 * spell_box_side) / 3
-            left_tab = ((4 * spell_box_side + 3 * tab) - (
-                    self.chosen_unit.unit.spells * spell_box_side + (self.chosen_unit.unit.spells - 1) * tab)) / 2
-            for num in range(self.chosen_unit.unit.spells):
+            left_tab = ((4 * spell_box_side + 3 * tab) - (count_spells * spell_box_side + (count_spells - 1) * tab)) / 2
+            for num in range(count_spells):
                 pygame.draw.rect(self.screen, pygame.Color("white"),
                                  (left_tab + text_x + (spell_box_side + tab) * num,
                                   top_tab, spell_box_side, spell_box_side), 1)
@@ -414,6 +413,11 @@ class Board:
                         if self.board[-1][-1].center[1] + self.diagonal + 4 * self.cell_size > self.height:
                             self.camera_pos[1] -= event.rel[1]
                             self.change_hexagons_pos((0, event.rel[1]))
+            elif event.type == pygame.KEYDOWN:
+                if event.key in [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r]:
+                    spell = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r].index(event.key)
+                    if self.chosen_unit and self.chosen_unit.unit.spells[spell].is_activated(self):
+                        self.chosen_unit.unit.spells[spell].cast(self)
 
     def draw_resources(self):
         for i in range(len(self.board)):

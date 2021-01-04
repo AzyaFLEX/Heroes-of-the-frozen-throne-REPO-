@@ -1,21 +1,21 @@
 from pygame import draw, Color
+from Spells.Spells import *
 
 
 class BaseUnit:
-    def __init__(self, player, hexagon, move_per_round=20, attack_range=0, spells=0):
+    def __init__(self, player, hexagon, move_per_round=20, attack_range=0):
         self.damage = 999
         self.health = 99
         self.mana = 999
         self.full_mana = 999
         self.full_health = 999
         self.player = player
-        self.spells = spells
+        self.spells = [None for _ in range(4)]
         self.hexagon = hexagon
         self.attacked = False
         self.attack_range = attack_range
         self.moves_per_round = move_per_round
         self.moved = move_per_round
-        self.activated_spells = [False for _ in range(spells)]
         self.color = Color("red")
 
     def __str__(self):
@@ -58,15 +58,12 @@ class BaseUnit:
 
 class Worker(BaseUnit):
     def __init__(self, player, hexagon):
-        super().__init__(player, hexagon, 20, 0, 1)
+        super().__init__(player, hexagon, 20, 0)
         self.health = 50
         self.mana = 0
+        self.spells[0] = Build()
         self.get_full()
         self.color = Color("white")
-
-    def update(self):
-        if self.moved and any(self.hexagon.tile.resources):
-            self.activated_spells[0] = True
 
     def spell_1(self):
         pass
@@ -84,7 +81,7 @@ class Warrior(BaseUnit):
 
 class Wizard(BaseUnit):
     def __init__(self, player, hexagon):
-        super().__init__(player, hexagon, 3, 3, 2)
+        super().__init__(player, hexagon, 3, 3)
         self.health = 30
         self.mana = 20
         self.damage = 30
