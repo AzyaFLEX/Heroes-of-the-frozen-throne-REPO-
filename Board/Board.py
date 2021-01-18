@@ -35,6 +35,7 @@ class Board:
         self.chosen_unit = None
         self.hexagons_to_move = {}
         self.hexagons_to_attack = {}
+        self.hexagons_to_stay = []
         self.changing_camera_pos = False
         self.camera_zooming = 0
         self.camera_pos = [0, 0]
@@ -47,6 +48,8 @@ class Board:
         self.throne_1 = []
         self.throne_menu_enable = False
         self.generate()
+        self.list_of_units = [i.__name__ for i in BaseUnit.__subclasses__()]\
+                             + ['' for i in range(10 - len(BaseUnit.__subclasses__()))]
 
     def generate(self):
         self.throne_0 += [
@@ -154,7 +157,6 @@ class Board:
                             if self.board[i][j] not in next_:
                                 next_ += [self.board[i][j]]
             return next_
-
         if self.chosen_unit and self.chosen_unit.unit:
             if not self.hexagons_to_move:
                 to_do = [self.chosen_unit]
@@ -179,6 +181,15 @@ class Board:
                 pygame.draw.circle(self.screen, pygame.Color("red"),
                                    self.board[elm.index[1]][elm.index[0]].center, 2, 5)
                 pygame.draw.polygon(self.screen, pygame.Color("red"), elm.points, 3)
+        if self.throne_menu_enable:
+            union_dict = {}
+            for elm in self.throne_0:
+                add_to_hexagons_to_move(elm, 1)
+            self.hexagons_to_stay = list(set(union_dict.keys()))
+            for elm in union_dict:
+                if elm.unit is None:
+                    pygame.draw.circle(self.screen, pygame.Color("Green"),
+                                       self.board[elm.index[1]][elm.index[0]].center, 2, 5)
 
     def draw_double_bar(self, colors: tuple, pos: tuple, per_cent: int, shift: int):
         new_pos = list(pos)
@@ -326,6 +337,8 @@ class Board:
                                     or (self.turn and self.chose_tile(event.pos) in self.throne_1)):
                                 self.chosen_unit = None
                                 self.throne_menu_enable = not self.throne_menu_enable
+                            elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
+                                self.use_throne_menu(event.pos)
                             elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
                                 self.use_throne_menu(event.pos)
                             elif self.chosen_unit and self.click_in_hud(event.pos):
