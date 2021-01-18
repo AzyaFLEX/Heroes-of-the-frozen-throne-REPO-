@@ -36,6 +36,8 @@ class Board:
         self.chosen_unit = None
         self.hexagons_to_move = {}
         self.hexagons_to_attack = {}
+        self.chosen_spell = None
+        self.hexagon_to_cast = []
         self.changing_camera_pos = False
         self.camera_zooming = 0
         self.camera_pos = [0, 0]
@@ -144,16 +146,18 @@ class Board:
             for j in range(pos[0] - 1, pos[0] + 2):
                 for i in range(pos[1] - 1 + helper_1 - (1 if j == pos[0] and helper_1 else 0),
                                pos[1] + 2 + helper_2 + (1 if j == pos[0] and helper_2 else 0)):
-                    if not any([i < 0,
-                                i >= len(self.board),
-                                j < 0 or j >= len(self.board[0]),
-                                pos == (j, i),
-                                not self.board[i][j].tile.can_move,
-                                self.board[i][j] == self.chosen_unit]):
-                        if self.board[i][j] not in union_dict:
-                            union_dict[self.board[i][j]] = num_
-                            if self.board[i][j] not in next_:
-                                next_ += [self.board[i][j]]
+                    try:
+                        if not any([i < 0, i >= len(self.board),
+                                    j < 0 or j >= len(self.board[0]),
+                                    pos == (j, i),
+                                    not self.board[i][j].tile.can_move,
+                                    self.board[i][j] == self.chosen_unit]):
+                            if self.board[i][j] not in union_dict:
+                                union_dict[self.board[i][j]] = num_
+                                if self.board[i][j] not in next_:
+                                    next_ += [self.board[i][j]]
+                    except IndexError:
+                        pass
             return next_
 
         if self.chosen_unit and self.chosen_unit.unit:
@@ -172,6 +176,19 @@ class Board:
                     if elm.unit and elm.unit.player != self.turn \
                             and self.chosen_unit.unit.attack_range >= union_dict[elm]:
                         self.hexagons_to_attack[elm] = union_dict[elm]
+            if self.chosen_spell:
+                to_do = [self.chosen_unit]
+                union_dict = {}
+                for num in range(self.chosen_spell.range):
+                    new = []
+                    for elm in to_do:
+                        if not (elm.unit and elm.unit != self.chosen_unit.unit):
+                            new += add_to_hexagons_to_move(elm, num + 1)
+                    to_do = new[:]
+                self.hexagon_to_cast = list(union_dict.keys())
+                if self.chosen_spell.use_on_himself:
+                    self.hexagon_to_cast += [self.chosen_unit]
+
             for elm in self.hexagons_to_move.keys():
                 if elm.unit is None:
                     pygame.draw.circle(self.screen, pygame.Color("white"),
@@ -180,6 +197,9 @@ class Board:
                 pygame.draw.circle(self.screen, pygame.Color("red"),
                                    self.board[elm.index[1]][elm.index[0]].center, 2, 5)
                 pygame.draw.polygon(self.screen, pygame.Color("red"), elm.points, 3)
+            for elm in self.hexagon_to_cast:
+                if elm.unit and self.chosen_spell and self.chosen_spell.can_cast(self, elm.unit):
+                    pygame.draw.polygon(self.screen, pygame.Color("yellow"), elm.points, 3)
 
     def draw_double_bar(self, colors: tuple, pos: tuple, per_cent: int, shift: int):
         new_pos = list(pos)
@@ -317,63 +337,68 @@ class Board:
                 if event.button == 1:
                     chosen_hexagon = self.chose_hexagon(event.pos)
                     if chosen_hexagon:
-                        if not self.hexagons_to_move:
-                            if ((not self.turn and self.chose_tile(event.pos) in self.throne_0)
-                                    or (self.turn and self.chose_tile(event.pos) in self.throne_1)):
-                                self.chosen_unit = None
-                                self.throne_menu_enable = not self.throne_menu_enable
-                            elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
-                                self.use_throne_menu(event.pos)
-                            elif self.chosen_unit and self.click_in_hud(event.pos):
-                                self.use_hud(event.pos)
-                            elif self.chosen_unit:
-                                if chosen_hexagon.unit:
-                                    if chosen_hexagon.unit.player == self.turn:
+                        if not self.chosen_spell or chosen_hexagon not in self.hexagon_to_cast:
+                            self.chosen_spell = None
+                            if not self.hexagons_to_move:
+                                if ((not self.turn and self.chose_tile(event.pos) in self.throne_0)
+                                        or (self.turn and self.chose_tile(event.pos) in self.throne_1)):
+                                    self.chosen_unit = None
+                                    self.throne_menu_enable = not self.throne_menu_enable
+                                elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
+                                    self.use_throne_menu(event.pos)
+                                elif self.chosen_unit and self.click_in_hud(event.pos):
+                                    self.use_hud(event.pos)
+                                elif self.chosen_unit:
+                                    if chosen_hexagon.unit:
+                                        if chosen_hexagon.unit.player == self.turn:
+                                            if chosen_hexagon == self.chosen_unit:
+                                                self.clear_chosen_unit()
+                                            else:
+                                                self.chose_unit(chosen_hexagon)
+                                        else:
+                                            self.clear_chosen_unit()
+                                    else:
+                                        self.clear_chosen_unit()
+                                elif chosen_hexagon.unit:
+                                    self.chose_unit(chosen_hexagon)
+                                else:
+                                    self.chosen_unit = None
+                            else:
+                                if self.throne_menu_enable and self.click_in_throne_menu(event.pos):
+                                    self.use_throne_menu(event.pos)
+                                elif self.click_in_hud(event.pos):
+                                    self.use_hud(event.pos)
+                                elif self.chosen_unit:
+                                    if chosen_hexagon.unit is None:
+                                        self.move_unit(chosen_hexagon)
+                                    elif chosen_hexagon.unit.player == self.turn:
                                         if chosen_hexagon == self.chosen_unit:
                                             self.clear_chosen_unit()
                                         else:
                                             self.chose_unit(chosen_hexagon)
+                                    elif chosen_hexagon in self.hexagons_to_attack:
+                                        attack = self.chosen_unit.unit.attack(
+                                                 self.hexagons_to_attack[chosen_hexagon],
+                                                 chosen_hexagon.unit)
+                                        if attack[0]:
+                                            if self.chosen_unit not in self.health_bars:
+                                                self.health_bars += [self.chosen_unit]
+                                            if chosen_hexagon not in self.health_bars:
+                                                self.health_bars += [chosen_hexagon]
+                                            if attack[1]:
+                                                if self.chosen_unit.unit.attack_range == 1:
+                                                    self.health_bars.remove(self.chosen_unit)
+                                                    chosen_hexagon.unit = self.chosen_unit.unit
+                                                    self.chosen_unit.unit = None
+                                                else:
+                                                    self.health_bars.remove(chosen_hexagon)
+                                                    chosen_hexagon.unit = None
+                                            self.clear_chosen_unit()
                                     else:
                                         self.clear_chosen_unit()
-                                else:
-                                    self.clear_chosen_unit()
-                            elif chosen_hexagon.unit:
-                                self.chose_unit(chosen_hexagon)
-                            else:
-                                self.chosen_unit = None
                         else:
-                            if self.throne_menu_enable and self.click_in_throne_menu(event.pos):
-                                self.use_throne_menu(event.pos)
-                            elif self.click_in_hud(event.pos):
-                                self.use_hud(event.pos)
-                            elif self.chosen_unit:
-                                if chosen_hexagon.unit is None:
-                                    self.move_unit(chosen_hexagon)
-                                elif chosen_hexagon.unit.player == self.turn:
-                                    if chosen_hexagon == self.chosen_unit:
-                                        self.clear_chosen_unit()
-                                    else:
-                                        self.chose_unit(chosen_hexagon)
-                                elif chosen_hexagon in self.hexagons_to_attack:
-                                    attack = self.chosen_unit.unit.attack(
-                                             self.hexagons_to_attack[chosen_hexagon],
-                                             chosen_hexagon.unit)
-                                    if attack[0]:
-                                        if self.chosen_unit not in self.health_bars:
-                                            self.health_bars += [self.chosen_unit]
-                                        if chosen_hexagon not in self.health_bars:
-                                            self.health_bars += [chosen_hexagon]
-                                        if attack[1]:
-                                            if self.chosen_unit.unit.attack_range == 1:
-                                                self.health_bars.remove(self.chosen_unit)
-                                                chosen_hexagon.unit = self.chosen_unit.unit
-                                                self.chosen_unit.unit = None
-                                            else:
-                                                self.health_bars.remove(chosen_hexagon)
-                                                chosen_hexagon.unit = None
-                                        self.clear_chosen_unit()
-                                else:
-                                    self.clear_chosen_unit()
+                            self.chosen_spell.cast(self, chosen_hexagon)
+                            self.chosen_spell = None
                     elif not self.click_in_throne_menu(event.pos):
                         if not self.click_in_hud(event.pos):
                             self.clear_chosen_unit()
@@ -416,8 +441,14 @@ class Board:
             elif event.type == pygame.KEYDOWN:
                 if event.key in [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r]:
                     spell = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r].index(event.key)
-                    if self.chosen_unit and self.chosen_unit.unit.spells[spell].is_activated(self):
-                        self.chosen_unit.unit.spells[spell].cast(self)
+                    if self.chosen_unit.unit.spells[spell]:
+                        if self.chosen_unit and self.chosen_unit.unit.spells[spell].is_activated(self):
+                            if not self.chosen_unit.unit.spells[spell].casting:
+                                self.chosen_unit.unit.spells[spell].cast(self)
+                            elif self.chosen_spell:
+                                self.chosen_spell = None
+                            else:
+                                self.chosen_spell = self.chosen_unit.unit.spells[spell]
 
     def draw_resources(self):
         for i in range(len(self.board)):
@@ -456,5 +487,5 @@ class Board:
             clock.tick(self.fps)
 
 
-test = Board(1080, 900, 20)
+test = Board(1080, 720, 20)
 test.render()

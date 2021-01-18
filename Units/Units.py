@@ -3,7 +3,7 @@ from Spells.Spells import *
 
 
 class BaseUnit:
-    def __init__(self, player, hexagon, move_per_round=20, attack_range=0):
+    def __init__(self, player, hexagon, move_per_round=200, attack_range=0):
         self.damage = 999
         self.health = 99
         self.mana = 999
@@ -82,6 +82,7 @@ class Warrior(BaseUnit):
 class Wizard(BaseUnit):
     def __init__(self, player, hexagon):
         super().__init__(player, hexagon, 3, 3)
+        self.spells[0] = Heal()
         self.health = 30
         self.mana = 20
         self.damage = 30
