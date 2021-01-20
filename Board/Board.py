@@ -13,6 +13,7 @@ class Board:
         self.start_cell_size = cell_size
         self.cell_size = cell_size
         self.diagonal = cell_size * (3 ** 0.5)
+        self.start_diagonal = self.diagonal
         self.rendering = True
         self.fps = 60
         self.board = [[Hexagon((j, i), (ceil(cell_size + cell_size * 1.5 * j),
@@ -30,7 +31,7 @@ class Board:
                                              (0, self.diagonal // 2)
                                          ))))
                        for j in range(int(self.width // (cell_size * 3)) * 2 - 1)]
-                      for i in range(int(self.height // (cell_size * (3 ** 0.5))))]
+                      for i in range(int(self.height // (cell_size * (3 ** 0.5))) - 2)]
         self.one_d_board = [i for j in self.board for i in j]
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.chosen_unit = None
@@ -110,6 +111,9 @@ class Board:
                                                          self.board[i][j].points)))
                 self.board[i][j].change_center((self.board[i][j].center[0] + pos[0],
                                                 self.board[i][j].center[1] + pos[1]))
+
+    def draw_display(self):
+        pygame.draw.rect(self.screen, pygame.Color("green"), (0, 0, self.width, self.start_diagonal))
 
     def draw_hex_map(self):
         for i in range(len(self.board)):
@@ -439,9 +443,9 @@ class Board:
                             self.camera_pos[1] -= event.rel[1]
                             self.change_hexagons_pos((0, event.rel[1]))
             elif event.type == pygame.KEYDOWN:
-                if event.key in [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r]:
+                if event.key in [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r] and self.chosen_unit:
                     spell = [pygame.K_q, pygame.K_w, pygame.K_e, pygame.K_r].index(event.key)
-                    if self.chosen_unit.unit.spells[spell]:
+                    if self.chosen_unit.unit.spells[spell] and self.chosen_unit.unit.spells[spell].casted:
                         if self.chosen_unit and self.chosen_unit.unit.spells[spell].is_activated(self):
                             if not self.chosen_unit.unit.spells[spell].casting:
                                 self.chosen_unit.unit.spells[spell].cast(self)
@@ -482,6 +486,7 @@ class Board:
             self.health_bar()
             self.draw_throne_window()
             self.hud()
+            self.draw_display()
             self.update()
             pygame.display.flip()
             clock.tick(self.fps)

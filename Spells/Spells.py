@@ -7,6 +7,8 @@ class Spell:
         self.casting = False
         self.use_on_himself = False
         self.range = 0
+        self.casted = -1
+        self.max_cast = self.casted
 
     def is_activated(self, board):
         """:return: bool. Показывает, можно ли использовать эту способность"""
@@ -19,6 +21,9 @@ class Spell:
     def cast(self, board, unit=None):
         """:return: None. Использование способности"""
         pass
+
+    def update(self):
+        self.casted = self.max_cast
 
 
 class Build(Spell):
@@ -36,6 +41,8 @@ class Heal(Spell):
         self.casting = True
         self.use_on_himself = True
         self.range = 3
+        self.casted = 2
+        self.max_cast = self.casted
 
     def can_cast(self, board, unit):
         if board.turn == unit.player:
@@ -43,6 +50,8 @@ class Heal(Spell):
         return False
 
     def cast(self, board, unit=None):
-        if self.is_activated(board) and unit:
+        if self.is_activated(board) and unit and self.casted:
             unit.unit.health += 15 if not unit.unit.health + 15 > unit.unit.full_health \
                 else unit.unit.full_health - unit.unit.health
+            if self.casted != -1:
+                self.casted -= 1
