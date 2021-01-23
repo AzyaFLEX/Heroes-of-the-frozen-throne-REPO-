@@ -15,6 +15,11 @@ class BaseTile:
     def __bool__(self):
         return self.__class__.__name__ == "BaseTile"
 
+    def return_useful(self):
+        for i in range(len(self.resources)):
+            if self.resources[i]:
+                return i
+
     def update(self):
         pass
 

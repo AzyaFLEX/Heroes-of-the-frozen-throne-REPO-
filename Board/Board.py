@@ -1,5 +1,6 @@
 from Cell.Tiles import *
 from Cell.Hexagon import Hexagon
+from Player_Data.Player import PlayerData
 from Units.Units import *
 from random import choice, randint
 from math import ceil
@@ -50,6 +51,7 @@ class Board:
         self.throne_0 = []
         self.throne_1 = []
         self.throne_menu_enable = False
+        self.players = [PlayerData(), PlayerData()]
         self.generate()
 
     def generate(self):
@@ -113,7 +115,13 @@ class Board:
                                                 self.board[i][j].center[1] + pos[1]))
 
     def draw_display(self):
-        pygame.draw.rect(self.screen, pygame.Color("green"), (0, 0, self.width, self.start_diagonal))
+        pygame.draw.rect(self.screen, pygame.Color("black"), (0, 0, self.width, self.start_diagonal))
+        wood = f"{self.players[self.turn].wood()} + {self.players[self.turn].buff[0]}"
+        iron = f"{self.players[self.turn].iron()} + {self.players[self.turn].buff[1]}"
+        gold = f"{self.players[self.turn].gold()} + {self.players[self.turn].buff[2]}"
+        data = pygame.font.Font(None, 26).render(
+            f"Дерево: {wood}    Железо: {iron}    Золото: {gold}", True, (255, 255, 255))
+        self.screen.blit(data, (10, data.get_height() // 2, data.get_width(), data.get_height()))
 
     def draw_hex_map(self):
         for i in range(len(self.board)):
@@ -449,6 +457,8 @@ class Board:
                         if self.chosen_unit and self.chosen_unit.unit.spells[spell].is_activated(self):
                             if not self.chosen_unit.unit.spells[spell].casting:
                                 self.chosen_unit.unit.spells[spell].cast(self)
+                                self.hexagons_to_move = {}
+                                self.hexagons_to_attack = {}
                             elif self.chosen_spell:
                                 self.chosen_spell = None
                             else:
@@ -460,9 +470,9 @@ class Board:
                 if any(self.board[i][j].tile.resources):
                     index = self.board[i][j].tile.resources.index(list(filter(lambda x: x,
                                                                               self.board[i][j].tile.resources))[0])
-                    pygame.draw.circle(self.screen, {0: Color("yellow"),
-                                                     1: Color("brown"),
-                                                     2: Color("grey")}[index],
+                    pygame.draw.circle(self.screen, {0: Color("brown"),
+                                                     1: Color("gray"),
+                                                     2: Color("yellow")}[index],
                                        (self.board[i][j].center[0],
                                         self.board[i][j].center[1] + self.diagonal / 3 + self.diagonal / 24),
                                        self.diagonal / 7)
@@ -484,9 +494,9 @@ class Board:
             self.draw_chosen_unit()
             self.draw_resources()
             self.health_bar()
-            self.draw_throne_window()
             self.hud()
             self.draw_display()
+            self.draw_throne_window()
             self.update()
             pygame.display.flip()
             clock.tick(self.fps)
