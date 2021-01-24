@@ -255,6 +255,11 @@ class Board:
                 for elm in self.throne_0:
                     add_to_hexagons_to_move(elm, 1)
                 self.hexagons_to_stay = list(set(union_dict.keys()))
+                empty_hexagons = []
+                for i in self.hexagons_to_stay:
+                    if not i.unit:
+                        empty_hexagons.append(i)
+                self.hexagons_to_stay = empty_hexagons
                 for elm in union_dict:
                     if elm.unit is None:
                         pygame.draw.circle(self.screen, pygame.Color("White"),
@@ -263,6 +268,11 @@ class Board:
                 for elm in self.throne_1:
                     add_to_hexagons_to_move(elm, 1)
                 self.hexagons_to_stay = list(set(union_dict.keys()))
+                empty_hexagons = []
+                for i in self.hexagons_to_stay:
+                    if not i.unit:
+                        empty_hexagons.append(i)
+                self.hexagons_to_stay = empty_hexagons
                 for elm in union_dict:
                     if elm.unit is None:
                         pygame.draw.circle(self.screen, pygame.Color("White"),
@@ -309,6 +319,19 @@ class Board:
                 self.chosen_unit = self.board[to_hexagon.index[1]][to_hexagon.index[0]]
                 self.hexagons_to_move = {}
                 self.hexagons_to_attack = {}
+        elif to_hexagon in self.hexagons_to_stay:
+            if self.chosen_unit == self.board[(int(self.height
+                                                   // (self.cell_size * (3 ** 0.5))) - 2) // 2][-1 * self.turn]:
+                self.chosen_unit.unit.color = self.color_of_unit_to_buy
+                self.chosen_unit.unit.hexagon = to_hexagon
+                self.board[to_hexagon.index[1]][to_hexagon.index[0]].unit = self.chosen_unit.unit
+                self.chosen_unit.unit.update()
+                self.chosen_unit.unit = None
+                self.chosen_unit = self.board[to_hexagon.index[1]][to_hexagon.index[0]]
+                self.hexagons_to_move = {}
+                self.hexagons_to_attack = {}
+                self.throne_menu_enable = False
+                self.hexagons_to_stay = []
         else:
             self.clear_chosen_unit()
 
@@ -339,7 +362,7 @@ class Board:
         x, y = pos[0] - [44 if self.turn else self.width - self.width // 3 - 20 + 24][0], pos[1] - 76
         if 0 <= x <= 156 * 2 and 0 <= y <= 156 * 5:
             unit_to_buy_name = self.list_of_units[y // 156 * 2:y // 156 * 2 + 2][x // 156]
-            i, j = 12, -1 * self.turn
+            i, j = (int(self.height // (self.cell_size * (3 ** 0.5))) - 2) // 2, -1 * self.turn
             if unit_to_buy_name:
                 eval(f"self.board[{i}][{j}].set_unit({unit_to_buy_name}({self.turn}, self.board[{i}][{j}]))")
                 self.chosen_unit = self.board[i][j]
@@ -450,7 +473,7 @@ class Board:
                                         self.use_throne_menu(event.pos)
                                     elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
                                         self.use_throne_menu(event.pos)
-                                    elif self.chosen_unit and self.throne_menu_enable and \
+                                    elif self.chosen_unit and self.throne_menu_enable and\
                                             not self.click_in_throne_menu(event.pos) and self.hexagons_to_stay:
                                         self.move_unit(chosen_hexagon)
                                     elif self.chosen_unit and self.click_in_hud(event.pos):
