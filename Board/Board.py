@@ -50,6 +50,7 @@ class Board:
         self.generate()
         self.list_of_units = [i.__name__ for i in BaseUnit.__subclasses__()]\
                              + ['' for i in range(10 - len(BaseUnit.__subclasses__()))]
+        self.color_of_unit_to_buy = None
 
     def generate(self):
         self.throne_0 += [
@@ -137,6 +138,17 @@ class Board:
             pygame.draw.rect(self.screen, Color("white"),
                              (20 if self.turn else self.width - self.width // 3 - 20, 20,
                               self.width // 3, self.height - 40), 3)
+            for i in range(5):
+                for j in range(2):
+                    if self.list_of_units[i * 2: i * 2 + 2][j]:
+                        pygame.draw.rect(self.screen,
+                                         eval('eval(self.list_of_units[i * 2: i * 2 + 2][j])(1,1).color'),
+                                         (44 + 156 * j if
+                                          self.turn else self.width - self.width // 3 - 20 + 24 + 156 * j,
+                                          76 + 156 * i, 156, 156))
+                    pygame.draw.rect(self.screen, Color("white"),
+                                     (44 + 156 * j if self.turn else self.width - self.width // 3 - 20 + 24 + 156 * j,
+                                      76 + 156 * i, 156, 156), 3)
 
     def draw_chosen_unit(self):
         def add_to_hexagons_to_move(hexagon, num_):
@@ -146,16 +158,19 @@ class Board:
             for j in range(pos[0] - 1, pos[0] + 2):
                 for i in range(pos[1] - 1 + helper_1 - (1 if j == pos[0] and helper_1 else 0),
                                pos[1] + 2 + helper_2 + (1 if j == pos[0] and helper_2 else 0)):
-                    if not any([i < 0,
-                                i >= len(self.board),
-                                j < 0 or j >= len(self.board[0]),
-                                pos == (j, i),
-                                not self.board[i][j].tile.can_move,
-                                self.board[i][j] == self.chosen_unit]):
-                        if self.board[i][j] not in union_dict:
-                            union_dict[self.board[i][j]] = num_
-                            if self.board[i][j] not in next_:
-                                next_ += [self.board[i][j]]
+                    try:
+                        if not any([i < 0,
+                                    i >= len(self.board),
+                                    j < 0 or j >= len(self.board[0]),
+                                    pos == (j, i),
+                                    not self.board[i][j].tile.can_move,
+                                    self.board[i][j] == self.chosen_unit]):
+                            if self.board[i][j] not in union_dict:
+                                union_dict[self.board[i][j]] = num_
+                                if self.board[i][j] not in next_:
+                                    next_ += [self.board[i][j]]
+                    except Exception:
+                        pass
             return next_
         if self.chosen_unit and self.chosen_unit.unit:
             if not self.hexagons_to_move:
@@ -183,13 +198,22 @@ class Board:
                 pygame.draw.polygon(self.screen, pygame.Color("red"), elm.points, 3)
         if self.throne_menu_enable:
             union_dict = {}
-            for elm in self.throne_0:
-                add_to_hexagons_to_move(elm, 1)
-            self.hexagons_to_stay = list(set(union_dict.keys()))
-            for elm in union_dict:
-                if elm.unit is None:
-                    pygame.draw.circle(self.screen, pygame.Color("Green"),
-                                       self.board[elm.index[1]][elm.index[0]].center, 2, 5)
+            if self.turn == 0:
+                for elm in self.throne_0:
+                    add_to_hexagons_to_move(elm, 1)
+                self.hexagons_to_stay = list(set(union_dict.keys()))
+                for elm in union_dict:
+                    if elm.unit is None:
+                        pygame.draw.circle(self.screen, pygame.Color("White"),
+                                        self.board[elm.index[1]][elm.index[0]].center, 2, 5)
+            else:
+                for elm in self.throne_1:
+                    add_to_hexagons_to_move(elm, 1)
+                self.hexagons_to_stay = list(set(union_dict.keys()))
+                for elm in union_dict:
+                    if elm.unit is None:
+                        pygame.draw.circle(self.screen, pygame.Color("White"),
+                                        self.board[elm.index[1]][elm.index[0]].center, 2, 5)
 
     def draw_double_bar(self, colors: tuple, pos: tuple, per_cent: int, shift: int):
         new_pos = list(pos)
@@ -230,6 +254,17 @@ class Board:
                 self.chosen_unit = self.board[to_hexagon.index[1]][to_hexagon.index[0]]
                 self.hexagons_to_move = {}
                 self.hexagons_to_attack = {}
+        elif to_hexagon in self.hexagons_to_stay:
+            self.chosen_unit.unit.color = self.color_of_unit_to_buy
+            self.chosen_unit.unit.hexagon = to_hexagon
+            self.board[to_hexagon.index[1]][to_hexagon.index[0]].unit = self.chosen_unit.unit
+            self.chosen_unit.unit.update()
+            self.chosen_unit.unit = None
+            self.chosen_unit = self.board[to_hexagon.index[1]][to_hexagon.index[0]]
+            self.hexagons_to_move = {}
+            self.hexagons_to_attack = {}
+            self.throne_menu_enable = False
+            self.hexagons_to_stay = []
         else:
             self.clear_chosen_unit()
 
@@ -248,8 +283,15 @@ class Board:
         self.hexagons_to_attack = {}
 
     def use_throne_menu(self, pos):
-        # TODO Арсений
-        pass
+        x, y = pos[0] - [44 if self.turn else self.width - self.width // 3 - 20 + 24][0], pos[1] - 76
+        if 0 <= x <= 156 * 2 and 0 <= y <= 156 * 5:
+            unit_to_buy_name = self.list_of_units[y // 156 * 2:y // 156 * 2 + 2][x // 156]
+            i, j = 12, -1 * self.turn
+            if unit_to_buy_name:
+                eval(f"self.board[{i}][{j}].set_unit({unit_to_buy_name}({self.turn}, self.board[{i}][{j}]))")
+                self.chosen_unit = self.board[i][j]
+                self.color_of_unit_to_buy = self.board[i][j].unit.color
+                self.board[i][j].unit.color = Color("yellow")
 
     def use_hud(self, pos):
         # TODO Артём
@@ -341,6 +383,9 @@ class Board:
                                 self.use_throne_menu(event.pos)
                             elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
                                 self.use_throne_menu(event.pos)
+                            elif self.chosen_unit and self.throne_menu_enable and\
+                                    not self.click_in_throne_menu(event.pos) and self.hexagons_to_stay:
+                                self.move_unit(chosen_hexagon)
                             elif self.chosen_unit and self.click_in_hud(event.pos):
                                 self.use_hud(event.pos)
                             elif self.chosen_unit:
