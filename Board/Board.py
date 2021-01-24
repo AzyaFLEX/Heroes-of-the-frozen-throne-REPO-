@@ -51,6 +51,7 @@ class Board:
         self.throne_0 = []
         self.throne_1 = []
         self.throne_menu_enable = False
+        self.need_to_light_units = False
         self.players = [PlayerData(), PlayerData()]
         self.generate()
 
@@ -104,7 +105,7 @@ class Board:
         new_y = ((m_p[1] + self.camera_pos[1]) / self.camera_data[1]) * diagonal
         self.change_hexagons_pos((-(round(new_x) - m_p[0]), -(round(new_y) - m_p[1])))
         self.cell_size = cell_size
-        self.diagonal = cell_size * (3 ** 0.5)
+        self.diagonal = diagonal
 
     def change_hexagons_pos(self, pos):
         for i in range(len(self.board)):
@@ -122,6 +123,20 @@ class Board:
         data = pygame.font.Font(None, 26).render(
             f"Дерево: {wood}    Железо: {iron}    Золото: {gold}", True, (255, 255, 255))
         self.screen.blit(data, (10, data.get_height() // 2, data.get_width(), data.get_height()))
+        pygame.draw.rect(self.screen, pygame.Color("green"), (self.width / 26 * 24,
+                                                              self.height / 26 * 23,
+                                                              50, 50))
+        pygame.draw.rect(self.screen, pygame.Color("yellow"), (self.width / 26 * 24 - 60,
+                                                               self.height / 26 * 23,
+                                                               50, 50))
+        can_move = pygame.font.Font(None, 46).render(
+            f"{len(list(filter(lambda x: x.unit and x.unit.player == self.turn and x.unit.moved, self.one_d_board)))}",
+            True, (0, 0, 0))
+        self.screen.blit(can_move, (self.width / 26 * 24 - 60 + 25 - can_move.get_rect().center[0],
+                                    self.height / 26 * 23 + 25 - can_move.get_rect().center[1],
+                                    50, 50))
+        player = pygame.font.Font(None, 45).render(f"Ходит игрок {self.turn + 1}", True, (255, 255, 255))
+        self.screen.blit(player, (self.width - player.get_width(), 0, player.get_width(), player.get_height()))
 
     def draw_hex_map(self):
         for i in range(len(self.board)):
@@ -132,6 +147,12 @@ class Board:
                                         if self.board[i][j] == self.chosen_unit else 1)
                 else:
                     pygame.draw.polygon(self.screen, self.board[i][j].tile.color, self.board[i][j].points)
+
+    def draw_units_to_go(self):
+        if self.need_to_light_units:
+            for elm in self.one_d_board:
+                if elm.unit and elm.unit.player == self.turn and elm.unit.moved:
+                    pygame.draw.polygon(self.screen, pygame.Color("orange"), elm.points, 3)
 
     def draw_units(self):
         for i in range(len(self.board)):
@@ -244,6 +265,9 @@ class Board:
     def move_unit(self, to_hexagon):
         if to_hexagon in self.hexagons_to_move:
             if not self.chosen_unit == to_hexagon:
+                if self.chosen_unit in self.health_bars:
+                    self.health_bars.remove(self.chosen_unit)
+                    self.health_bars += [to_hexagon]
                 self.chosen_unit.unit.hexagon = to_hexagon
                 self.chosen_unit.unit.move(self.hexagons_to_move[to_hexagon])
                 self.board[to_hexagon.index[1]][to_hexagon.index[0]].unit = self.chosen_unit.unit
@@ -262,6 +286,15 @@ class Board:
         start_pos = (0, 4 * (self.height / 5))
         hud_width = 6 * (self.width / 12)
         return start_pos[0] <= pos[0] <= hud_width and start_pos[1] <= pos[1] <= self.height
+
+    def click_in_buttons(self, pos):
+        if self.width / 26 * 24 <= pos[0] <= self.width / 26 * 24 + 50\
+                and self.height / 26 * 23 <= pos[1] <= self.height / 26 * 23 + 50:
+            return 1
+        if self.width / 26 * 24 - 60 <= pos[0] <= self.width / 26 * 24 - 60 + 50\
+                and self.height / 26 * 23 <= pos[1] <= self.height / 26 * 23 + 50:
+            return 2
+        return 0
 
     def clear_chosen_unit(self):
         self.chosen_unit = None
@@ -341,6 +374,21 @@ class Board:
                                  (left_tab + text_x + (spell_box_side + tab) * num,
                                   top_tab, spell_box_side, spell_box_side), 1)
 
+    def refresh_everything(self):
+        self.chosen_unit = None
+        self.hexagons_to_move = {}
+        self.hexagons_to_attack = {}
+        self.hexagon_to_cast = []
+        self.throne_menu_enable = False
+        self.need_to_light_units = False
+        self.players[self.turn].update()
+        for elm in self.one_d_board:
+            if elm.unit and elm.unit.player == self.turn:
+                elm.unit.refresh()
+                for spell in elm.unit.spells:
+                    if spell:
+                        spell.update()
+
     def update(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -348,76 +396,83 @@ class Board:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     chosen_hexagon = self.chose_hexagon(event.pos)
-                    if chosen_hexagon:
-                        if not self.chosen_spell or chosen_hexagon not in self.hexagon_to_cast:
-                            self.chosen_spell = None
-                            if not self.hexagons_to_move:
-                                if ((not self.turn and self.chose_tile(event.pos) in self.throne_0)
-                                        or (self.turn and self.chose_tile(event.pos) in self.throne_1)):
-                                    self.chosen_unit = None
-                                    self.throne_menu_enable = not self.throne_menu_enable
-                                elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
-                                    self.use_throne_menu(event.pos)
-                                elif self.chosen_unit and self.click_in_hud(event.pos):
-                                    self.use_hud(event.pos)
-                                elif self.chosen_unit:
-                                    if chosen_hexagon.unit:
-                                        if chosen_hexagon.unit.player == self.turn:
+                    if not self.click_in_buttons(event.pos):
+                        if chosen_hexagon:
+                            if not self.chosen_spell or chosen_hexagon not in self.hexagon_to_cast:
+                                self.chosen_spell = None
+                                if not self.hexagons_to_move:
+                                    if ((not self.turn and self.chose_tile(event.pos) in self.throne_0)
+                                            or (self.turn and self.chose_tile(event.pos) in self.throne_1)):
+                                        self.chosen_unit = None
+                                        self.throne_menu_enable = not self.throne_menu_enable
+                                    elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
+                                        self.use_throne_menu(event.pos)
+                                    elif self.chosen_unit and self.click_in_hud(event.pos):
+                                        self.use_hud(event.pos)
+                                    elif self.chosen_unit:
+                                        if chosen_hexagon.unit:
+                                            if chosen_hexagon.unit.player == self.turn:
+                                                if chosen_hexagon == self.chosen_unit:
+                                                    self.clear_chosen_unit()
+                                                else:
+                                                    self.chose_unit(chosen_hexagon)
+                                            else:
+                                                self.clear_chosen_unit()
+                                        else:
+                                            self.clear_chosen_unit()
+                                    elif chosen_hexagon.unit:
+                                        self.chose_unit(chosen_hexagon)
+                                    else:
+                                        self.chosen_unit = None
+                                else:
+                                    if self.throne_menu_enable and self.click_in_throne_menu(event.pos):
+                                        self.use_throne_menu(event.pos)
+                                    elif self.click_in_hud(event.pos):
+                                        pass
+                                    elif self.chosen_unit:
+                                        if chosen_hexagon.unit is None:
+                                            self.move_unit(chosen_hexagon)
+                                        elif chosen_hexagon.unit.player == self.turn:
                                             if chosen_hexagon == self.chosen_unit:
                                                 self.clear_chosen_unit()
                                             else:
                                                 self.chose_unit(chosen_hexagon)
+                                        elif chosen_hexagon in self.hexagons_to_attack:
+                                            attack = self.chosen_unit.unit.attack(
+                                                     self.hexagons_to_attack[chosen_hexagon],
+                                                     chosen_hexagon.unit)
+                                            if attack[0]:
+                                                if self.chosen_unit not in self.health_bars:
+                                                    self.health_bars += [self.chosen_unit]
+                                                if chosen_hexagon not in self.health_bars:
+                                                    self.health_bars += [chosen_hexagon]
+                                                if attack[1]:
+                                                    if self.chosen_unit.unit.attack_range == 1:
+                                                        self.health_bars.remove(self.chosen_unit)
+                                                        chosen_hexagon.unit = self.chosen_unit.unit
+                                                        self.chosen_unit.unit = None
+                                                    else:
+                                                        self.health_bars.remove(chosen_hexagon)
+                                                        chosen_hexagon.unit = None
+                                                self.clear_chosen_unit()
                                         else:
                                             self.clear_chosen_unit()
-                                    else:
-                                        self.clear_chosen_unit()
-                                elif chosen_hexagon.unit:
-                                    self.chose_unit(chosen_hexagon)
-                                else:
-                                    self.chosen_unit = None
                             else:
-                                if self.throne_menu_enable and self.click_in_throne_menu(event.pos):
-                                    self.use_throne_menu(event.pos)
-                                elif self.click_in_hud(event.pos):
-                                    self.use_hud(event.pos)
-                                elif self.chosen_unit:
-                                    if chosen_hexagon.unit is None:
-                                        self.move_unit(chosen_hexagon)
-                                    elif chosen_hexagon.unit.player == self.turn:
-                                        if chosen_hexagon == self.chosen_unit:
-                                            self.clear_chosen_unit()
-                                        else:
-                                            self.chose_unit(chosen_hexagon)
-                                    elif chosen_hexagon in self.hexagons_to_attack:
-                                        attack = self.chosen_unit.unit.attack(
-                                                 self.hexagons_to_attack[chosen_hexagon],
-                                                 chosen_hexagon.unit)
-                                        if attack[0]:
-                                            if self.chosen_unit not in self.health_bars:
-                                                self.health_bars += [self.chosen_unit]
-                                            if chosen_hexagon not in self.health_bars:
-                                                self.health_bars += [chosen_hexagon]
-                                            if attack[1]:
-                                                if self.chosen_unit.unit.attack_range == 1:
-                                                    self.health_bars.remove(self.chosen_unit)
-                                                    chosen_hexagon.unit = self.chosen_unit.unit
-                                                    self.chosen_unit.unit = None
-                                                else:
-                                                    self.health_bars.remove(chosen_hexagon)
-                                                    chosen_hexagon.unit = None
-                                            self.clear_chosen_unit()
-                                    else:
-                                        self.clear_chosen_unit()
+                                self.chosen_spell.cast(self, chosen_hexagon)
+                                self.chosen_spell = None
+                        elif not self.click_in_throne_menu(event.pos):
+                            if not self.click_in_hud(event.pos):
+                                self.clear_chosen_unit()
+                            else:
+                                self.use_hud(event.pos)
                         else:
-                            self.chosen_spell.cast(self, chosen_hexagon)
-                            self.chosen_spell = None
-                    elif not self.click_in_throne_menu(event.pos):
-                        if not self.click_in_hud(event.pos):
-                            self.clear_chosen_unit()
-                        else:
-                            self.use_hud(event.pos)
+                            self.use_throne_menu(event.pos)
                     else:
-                        self.use_throne_menu(event.pos)
+                        if self.click_in_buttons(event.pos) == 2:
+                            self.need_to_light_units = not self.need_to_light_units
+                        else:
+                            self.turn = 0 if self.turn else 1
+                            self.refresh_everything()
                 elif event.button == 2:
                     self.changing_camera_pos = True
                 elif event.button == 4:
@@ -493,6 +548,7 @@ class Board:
             self.draw_units()
             self.draw_chosen_unit()
             self.draw_resources()
+            self.draw_units_to_go()
             self.health_bar()
             self.hud()
             self.draw_display()
