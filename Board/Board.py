@@ -167,24 +167,21 @@ class Board:
                                                    self.cell_size, self.diagonal)
 
     def draw_throne_window(self):
+        start_pos = (20 if self.turn else self.width - 60 - (self.height - 40) // 5 * 2, 20)
+        a = (self.height - 80) // 5
         if self.throne_menu_enable:
             pygame.draw.rect(self.screen, Color("black"),
-                             (20 if self.turn else self.width - self.width // 3 - 20, 20,
-                              self.width // 3, self.height - 40))
+                            (start_pos[0], start_pos[1], a * 2 + 40, self.height - 40))
             pygame.draw.rect(self.screen, Color("white"),
-                             (20 if self.turn else self.width - self.width // 3 - 20, 20,
-                              self.width // 3, self.height - 40), 3)
+                             (start_pos[0], start_pos[1], a * 2 + 40, self.height - 40), 3)
             for i in range(5):
                 for j in range(2):
                     if self.list_of_units[i * 2: i * 2 + 2][j]:
                         pygame.draw.rect(self.screen,
                                          eval('eval(self.list_of_units[i * 2: i * 2 + 2][j])(1,1).color'),
-                                         (44 + 156 * j if
-                                          self.turn else self.width - self.width // 3 - 20 + 24 + 156 * j,
-                                          76 + 156 * i, 156, 156))
+                                         (start_pos[0] + 20 + a * j, start_pos[1] + 20 + a * i, a, a))
                     pygame.draw.rect(self.screen, Color("white"),
-                                     (44 + 156 * j if self.turn else self.width - self.width // 3 - 20 + 24 + 156 * j,
-                                      76 + 156 * i, 156, 156), 3)
+                                     (start_pos[0] + 20 + a * j, start_pos[1] + 20 + a * i, a, a), 3)
 
     def draw_chosen_unit(self):
         def add_to_hexagons_to_move(hexagon, num_):
@@ -336,8 +333,8 @@ class Board:
             self.clear_chosen_unit()
 
     def click_in_throne_menu(self, pos):
-        x = 20 if self.turn else self.width - self.width // 3 - 20
-        return x <= pos[0] <= x + self.width // 3 and 20 <= pos[1] <= self.height - 20
+        x = self.width - 60 - (self.height - 40) // 5 * 2
+        return x <= pos[0] <= x + 40 + (self.height - 40) // 5 * 2 and 20 <= pos[1] <= self.height - 20
 
     def click_in_hud(self, pos):
         start_pos = (0, 4 * (self.height / 5))
@@ -359,6 +356,8 @@ class Board:
         self.hexagons_to_attack = {}
 
     def use_throne_menu(self, pos):
+        start_pos = (20 if self.turn else self.width - 60 - (self.height - 40) // 5 * 2, 20)
+        a = (self.height - 80) // 5
         x, y = pos[0] - [44 if self.turn else self.width - self.width // 3 - 20 + 24][0], pos[1] - 76
         if 0 <= x <= 156 * 2 and 0 <= y <= 156 * 5:
             unit_to_buy_name = self.list_of_units[y // 156 * 2:y // 156 * 2 + 2][x // 156]
