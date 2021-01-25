@@ -57,6 +57,7 @@ class Board:
         self.list_of_units = [i.__name__ for i in BaseUnit.__subclasses__()] \
                              + ['' for i in range(10 - len(BaseUnit.__subclasses__()))]
         self.color_of_unit_to_buy = None
+        self.help_for_chebya = int(self.height // (cell_size * (3 ** 0.5))) - 2
         self.generate()
 
     def generate(self):
@@ -361,7 +362,7 @@ class Board:
         x, y = pos[0] - [44 if self.turn else self.width - self.width // 3 - 20 + 24][0], pos[1] - 76
         if 0 <= x <= 156 * 2 and 0 <= y <= 156 * 5:
             unit_to_buy_name = self.list_of_units[y // 156 * 2:y // 156 * 2 + 2][x // 156]
-            i, j = (int(self.height // (self.cell_size * (3 ** 0.5))) - 2) // 2, -1 * self.turn
+            i, j = self.help_for_chebya // 2, -1 * self.turn
             if unit_to_buy_name:
                 eval(f"self.board[{i}][{j}].set_unit({unit_to_buy_name}({self.turn}, self.board[{i}][{j}]))")
                 self.chosen_unit = self.board[i][j]
@@ -532,7 +533,7 @@ class Board:
                             if not self.click_in_hud(event.pos):
                                 self.clear_chosen_unit()
                             else:
-                                self.use_hud(event.pos)
+                                pass
                         else:
                             self.use_throne_menu(event.pos)
                     else:
