@@ -54,10 +54,10 @@ class Board:
         self.throne_menu_enable = False
         self.need_to_light_units = False
         self.players = [PlayerData(), PlayerData()]
-        self.list_of_units = [i.__name__ for i in BaseUnit.__subclasses__()] \
+        self.list_of_units = [i.__name__ for i in BaseUnit.__subclasses__()]\
                              + ['' for i in range(10 - len(BaseUnit.__subclasses__()))]
         self.color_of_unit_to_buy = None
-        self.help_for_chebya = int(self.height // (cell_size * (3 ** 0.5))) - 2
+        self.middle_hex = int(self.height // (cell_size * (3 ** 0.5))) - 2
         self.generate()
 
     def generate(self):
@@ -172,7 +172,7 @@ class Board:
         a = (self.height - 80) // 5
         if self.throne_menu_enable:
             pygame.draw.rect(self.screen, Color("black"),
-                            (start_pos[0], start_pos[1], a * 2 + 40, self.height - 40))
+                             (start_pos[0], start_pos[1], a * 2 + 40, self.height - 40))
             pygame.draw.rect(self.screen, Color("white"),
                              (start_pos[0], start_pos[1], a * 2 + 40, self.height - 40), 3)
             for i in range(5):
@@ -318,9 +318,8 @@ class Board:
                 self.hexagons_to_move = {}
                 self.hexagons_to_attack = {}
         elif to_hexagon in self.hexagons_to_stay:
-            if self.chosen_unit == self.board[(int(self.height
-                                                   // (self.cell_size * (3 ** 0.5))) - 2) // 2][-1 * self.turn]:
-                self.chosen_unit.unit.color = self.color_of_unit_to_buy
+            if self.chosen_unit == self.board[self.middle_hex // 2][-1 * self.turn]:
+                self.chosen_unit.unit.change_color(self.color_of_unit_to_buy)
                 self.chosen_unit.unit.hexagon = to_hexagon
                 self.board[to_hexagon.index[1]][to_hexagon.index[0]].unit = self.chosen_unit.unit
                 self.chosen_unit.unit.update()
@@ -334,7 +333,7 @@ class Board:
             self.clear_chosen_unit()
 
     def click_in_throne_menu(self, pos):
-        x = self.width - 60 - (self.height - 40) // 5 * 2
+        x = 20 if self.turn else self.width - 60 - (self.height - 40) // 5 * 2
         return x <= pos[0] <= x + 40 + (self.height - 40) // 5 * 2 and 20 <= pos[1] <= self.height - 20
 
     def click_in_hud(self, pos):
@@ -359,15 +358,15 @@ class Board:
     def use_throne_menu(self, pos):
         start_pos = (20 if self.turn else self.width - 60 - (self.height - 40) // 5 * 2, 20)
         a = (self.height - 80) // 5
-        x, y = pos[0] - [44 if self.turn else self.width - self.width // 3 - 20 + 24][0], pos[1] - 76
-        if 0 <= x <= 156 * 2 and 0 <= y <= 156 * 5:
-            unit_to_buy_name = self.list_of_units[y // 156 * 2:y // 156 * 2 + 2][x // 156]
-            i, j = self.help_for_chebya // 2, -1 * self.turn
+        x, y = pos[0] - start_pos[0] - 20, pos[1] - 40
+        if 0 <= x <= a * 2 and 0 <= y <= a * 5:
+            unit_to_buy_name = self.list_of_units[y // a * 2:y // a * 2 + 2][x // a]
+            i, j = self.middle_hex // 2, -1 * self.turn
             if unit_to_buy_name:
                 eval(f"self.board[{i}][{j}].set_unit({unit_to_buy_name}({self.turn}, self.board[{i}][{j}]))")
                 self.chosen_unit = self.board[i][j]
-                self.color_of_unit_to_buy = self.board[i][j].unit.color
-                self.board[i][j].unit.color = Color("yellow")
+                self.color_of_unit_to_buy = self.board[i][j].unit.get_color()
+                self.board[i][j].unit.change_color(Color("yellow"))
 
     def health_bar(self):
         for hexagon in self.health_bars:

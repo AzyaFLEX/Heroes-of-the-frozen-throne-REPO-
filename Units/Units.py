@@ -55,6 +55,12 @@ class BaseUnit:
         self.moved = self.moves_per_round
         self.attacked = False
 
+    def change_color(self, color):
+        self.color = color
+
+    def get_color(self):
+        return self.color
+
 
 class Worker(BaseUnit):
     def __init__(self, player, hexagon):
