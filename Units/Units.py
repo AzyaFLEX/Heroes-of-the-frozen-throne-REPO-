@@ -67,7 +67,7 @@ class Worker(BaseUnit):
     def __init__(self, player, hexagon):
         super().__init__(player, hexagon, 5, 0)
         self.health = 35
-        self.damage = 100
+        self.damage = 0
         self.mana = 0
         self.cost = [20, 0, 0]
         self.spells[0] = Build()
