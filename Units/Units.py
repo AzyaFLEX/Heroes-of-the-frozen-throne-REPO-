@@ -9,6 +9,7 @@ class BaseUnit:
         self.mana = 999
         self.full_mana = 999
         self.full_health = 999
+        self.cost = [1, 1, 1]
         self.player = player
         self.spells = [None for _ in range(4)]
         self.hexagon = hexagon
@@ -67,6 +68,7 @@ class Worker(BaseUnit):
         super().__init__(player, hexagon, 20, 0)
         self.health = 50
         self.mana = 0
+        self.cost = [2, 2, 2]
         self.spells[0] = Build()
         self.get_full()
         self.color = Color("white")
@@ -80,6 +82,7 @@ class Warrior(BaseUnit):
         super().__init__(player, hexagon, 4, 1)
         self.health = 50
         self.mana = 0
+        self.cost = [3, 3, 3]
         self.damage = 25
         self.get_full()
         self.color = Color("blue")
@@ -91,6 +94,7 @@ class Wizard(BaseUnit):
         self.spells[0] = Heal()
         self.health = 30
         self.mana = 20
+        self.cost = [4, 4, 4]
         self.damage = 30
         self.get_full()
         self.color = Color("pink")

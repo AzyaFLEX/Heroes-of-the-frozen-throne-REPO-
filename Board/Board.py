@@ -178,9 +178,13 @@ class Board:
             for i in range(5):
                 for j in range(2):
                     if self.list_of_units[i * 2: i * 2 + 2][j]:
-                        pygame.draw.rect(self.screen,
-                                         eval('eval(self.list_of_units[i * 2: i * 2 + 2][j])(1,1).color'),
-                                         (start_pos[0] + 20 + a * j, start_pos[1] + 20 + a * i, a, a))
+                        help_unit = eval(f'eval(self.list_of_units[i * 2: i * 2 + 2][j])({self.turn}, 1)')
+                        if all(help_unit.cost[n] <= self.players[self.turn].resources[n] for n in range(3)):
+                            pygame.draw.rect(self.screen, help_unit.color,
+                                            (start_pos[0] + 20 + a * j, start_pos[1] + 20 + a * i, a, a))
+                        else:
+                            pygame.draw.rect(self.screen, Color('Gray'),
+                                             (start_pos[0] + 20 + a * j, start_pos[1] + 20 + a * i, a, a))
                     pygame.draw.rect(self.screen, Color("white"),
                                      (start_pos[0] + 20 + a * j, start_pos[1] + 20 + a * i, a, a), 3)
 
@@ -319,16 +323,22 @@ class Board:
                 self.hexagons_to_attack = {}
         elif to_hexagon in self.hexagons_to_stay:
             if self.chosen_unit == self.board[self.middle_hex // 2][-1 * self.turn]:
-                self.chosen_unit.unit.change_color(self.color_of_unit_to_buy)
-                self.chosen_unit.unit.hexagon = to_hexagon
-                self.board[to_hexagon.index[1]][to_hexagon.index[0]].unit = self.chosen_unit.unit
-                self.chosen_unit.unit.update()
-                self.chosen_unit.unit = None
-                self.chosen_unit = self.board[to_hexagon.index[1]][to_hexagon.index[0]]
-                self.hexagons_to_move = {}
-                self.hexagons_to_attack = {}
-                self.throne_menu_enable = False
-                self.hexagons_to_stay = []
+                if all(self.chosen_unit.unit.cost[i] <= self.players[self.turn].resources[i] for i in range(3)):
+                    self.chosen_unit.unit.change_color(self.color_of_unit_to_buy)
+                    self.chosen_unit.unit.hexagon = to_hexagon
+                    self.board[to_hexagon.index[1]][to_hexagon.index[0]].unit = self.chosen_unit.unit
+                    self.chosen_unit.unit.update()
+                    self.chosen_unit.unit = None
+                    self.chosen_unit = self.board[to_hexagon.index[1]][to_hexagon.index[0]]
+                    self.hexagons_to_move = {}
+                    self.hexagons_to_attack = {}
+                    self.throne_menu_enable = False
+                    self.hexagons_to_stay = []
+                    for i in range(3):
+                        self.players[self.turn].resources[i] -= self.chosen_unit.unit.cost[i]
+                else:
+                    self.board[self.middle_hex // 2][-1 * self.turn].unit = None
+                    self.clear_chosen_unit()
         else:
             self.clear_chosen_unit()
 
@@ -367,6 +377,9 @@ class Board:
                 self.chosen_unit = self.board[i][j]
                 self.color_of_unit_to_buy = self.board[i][j].unit.get_color()
                 self.board[i][j].unit.change_color(Color("yellow"))
+            else:
+                self.board[self.middle_hex // 2][-1 * self.turn].unit = None
+                self.clear_chosen_unit()
 
     def health_bar(self):
         for hexagon in self.health_bars:
@@ -468,6 +481,7 @@ class Board:
                                             or (self.turn and self.chose_tile(event.pos) in self.throne_1)):
                                         self.chosen_unit = None
                                         self.throne_menu_enable = not self.throne_menu_enable
+                                        self.board[self.middle_hex // 2][-1 * self.turn].unit = None
                                     elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
                                         self.use_throne_menu(event.pos)
                                     elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
