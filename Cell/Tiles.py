@@ -7,6 +7,7 @@ class BaseTile:
         self.fill = fill
         self.useful = useful
         self.color = Color("white")
+        self.can_be_attacked = False
         self.resources = [0, 0, 0]
 
     def __str__(self):

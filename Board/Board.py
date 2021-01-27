@@ -521,7 +521,8 @@ class Board:
                                 if not self.hexagons_to_move:
                                     if ((not self.turn and self.chose_tile(event.pos) in self.throne_0)
                                             or (self.turn and self.chose_tile(event.pos) in self.throne_1)):
-                                        self.chosen_unit = None
+                                        self.board[self.middle_hex // 2][-1 * self.turn].unit = None
+                                        self.clear_chosen_unit()
                                         self.throne_menu_enable = not self.throne_menu_enable
                                     elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
                                         self.use_throne_menu(event.pos)
