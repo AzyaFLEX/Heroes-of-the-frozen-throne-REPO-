@@ -8,6 +8,8 @@ class BaseTile:
         self.useful = useful
         self.color = Color("white")
         self.resources = [0, 0, 0]
+        self.can_be_attacked = False
+        self.health = 0
 
     def __str__(self):
         return self.__class__.__name__
