@@ -181,7 +181,7 @@ class Board:
                         help_unit = eval(f'eval(self.list_of_units[i * 2: i * 2 + 2][j])({self.turn}, 1)')
                         if all(help_unit.cost[n] <= self.players[self.turn].resources[n] for n in range(3)):
                             pygame.draw.rect(self.screen, help_unit.color,
-                                            (start_pos[0] + 20 + a * j, start_pos[1] + 20 + a * i, a, a))
+                                             (start_pos[0] + 20 + a * j, start_pos[1] + 20 + a * i, a, a))
                         else:
                             pygame.draw.rect(self.screen, Color('Gray'),
                                              (start_pos[0] + 20 + a * j, start_pos[1] + 20 + a * i, a, a))
@@ -640,5 +640,5 @@ class Board:
             clock.tick(self.fps)
 
 
-test = Board(1080, 720, 20)
-test.render()
+#test = Board(1080, 720, 20)
+#test.render()
