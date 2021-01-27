@@ -386,7 +386,7 @@ class Board:
                 eval(f"self.board[{i}][{j}].set_unit({unit_to_buy_name}({self.turn}, self.board[{i}][{j}]))")
                 self.chosen_unit = self.board[i][j]
                 self.color_of_unit_to_buy = self.board[i][j].unit.get_color()
-                self.board[i][j].unit.change_color(Color("yellow"))
+                self.board[i][j].unit.change_color(Color("red" if self.turn else "blue"))
             else:
                 self.board[self.middle_hex // 2][-1 * self.turn].unit = None
                 self.clear_chosen_unit()
@@ -720,7 +720,3 @@ class Board:
             self.update()
             pygame.display.flip()
             clock.tick(self.fps)
-
-
-#test = Board(1080, 720, 20)
-#test.render()
