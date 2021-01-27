@@ -87,7 +87,14 @@ class Board:
         for _ in range(25):
             tile = choice(self.board[randint(0, len(self.board)) - 1]).tile
             if tile.useful and not any(tile.resources):
-                tile.resources[randint(0, 2)] += randint(1, 3)
+                res = randint(0, 2)
+                if res == 0:
+                    cost = randint(10, 12)
+                elif res == 1:
+                    cost = randint(5, 7)
+                else:
+                    cost = randint(1, 3)
+                tile.resources[res] += cost
 
     def change_hexagons_size(self, cell_size, m_p):
         diagonal = cell_size * (3 ** 0.5)
@@ -642,7 +649,14 @@ class Board:
                                 for _ in range(30):
                                     tile = choice(self.board[randint(0, len(self.board)) - 1]).tile
                                     if tile.useful and not any(tile.resources):
-                                        tile.resources[randint(0, 2)] += randint(2, 4)
+                                        res = randint(0, 2)
+                                        if res == 0:
+                                            cost = randint(10, 12)
+                                        elif res == 1:
+                                            cost = randint(5, 7)
+                                        else:
+                                            cost = randint(1, 3)
+                                        tile.resources[res] += cost
                                 self.part = 1
                 elif event.button == 2:
                     self.changing_camera_pos = True
