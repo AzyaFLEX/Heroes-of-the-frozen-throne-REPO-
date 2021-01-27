@@ -1,6 +1,6 @@
 class PlayerData:
     def __init__(self):
-        self.resources = [10, 10, 10]
+        self.resources = [40, 0, 0]
         self.buff = [0, 0, 0]
 
     def wood(self):

@@ -9,7 +9,7 @@ class BaseUnit:
         self.mana = 999
         self.full_mana = 999
         self.full_health = 999
-        self.cost = [1, 1, 1]
+        self.cost = [0, 0, 0]
         self.player = player
         self.spells = [None for _ in range(4)]
         self.hexagon = hexagon
@@ -69,7 +69,7 @@ class Worker(BaseUnit):
         self.health = 35
         self.damage = 100
         self.mana = 0
-        self.cost = [2, 2, 2]
+        self.cost = [20, 0, 0]
         self.spells[0] = Build()
         self.get_full()
         self.color = "#89a7e2" if not player else "#e289b5"
@@ -83,7 +83,7 @@ class Warrior(BaseUnit):
         super().__init__(player, hexagon, 4, 1)
         self.health = 50
         self.mana = 0
-        self.cost = [3, 3, 3]
+        self.cost = [20, 10, 0]
         self.damage = 25
         self.get_full()
         self.color = "#344570" if not player else "#703444"
@@ -95,7 +95,7 @@ class Wizard(BaseUnit):
         self.spells[0] = Heal()
         self.health = 30
         self.mana = 20
-        self.cost = [4, 4, 4]
+        self.cost = [25, 30, 5]
         self.damage = 30
         self.get_full()
         self.color = "#22d5ba" if not player else "#d522a5"
@@ -103,9 +103,10 @@ class Wizard(BaseUnit):
 
 class Hunter(BaseUnit):
     def __init__(self, player, hexagon):
-        super().__init__(player, hexagon, 40, 2)
+        super().__init__(player, hexagon, 5, 2)
         self.health = 20
         self.damage = 35
+        self.cost = [20, 20, 30]
         self.mana = 0
         self.get_full()
         self.color = "#002761" if not player else "#610017"
