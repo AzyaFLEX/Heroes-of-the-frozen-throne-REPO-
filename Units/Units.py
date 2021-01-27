@@ -55,15 +55,22 @@ class BaseUnit:
         self.moved = self.moves_per_round
         self.attacked = False
 
+    def change_color(self, color):
+        self.color = color
+
+    def get_color(self):
+        return self.color
+
 
 class Worker(BaseUnit):
     def __init__(self, player, hexagon):
-        super().__init__(player, hexagon, 20, 0)
-        self.health = 50
+        super().__init__(player, hexagon, 5, 0)
+        self.health = 35
+        self.damage = 100
         self.mana = 0
         self.spells[0] = Build()
         self.get_full()
-        self.color = Color("white")
+        self.color = "#89a7e2" if not player else "#e289b5"
 
     def spell_1(self):
         pass
@@ -76,7 +83,7 @@ class Warrior(BaseUnit):
         self.mana = 0
         self.damage = 25
         self.get_full()
-        self.color = Color("blue")
+        self.color = "#344570" if not player else "#703444"
 
 
 class Wizard(BaseUnit):
@@ -87,4 +94,26 @@ class Wizard(BaseUnit):
         self.mana = 20
         self.damage = 30
         self.get_full()
-        self.color = Color("pink")
+        self.color = "#22d5ba" if not player else "#d522a5"
+
+
+class Hunter(BaseUnit):
+    def __init__(self, player, hexagon):
+        super().__init__(player, hexagon, 40, 2)
+        self.health = 20
+        self.damage = 35
+        self.mana = 0
+        self.get_full()
+        self.color = "#002761" if not player else "#610017"
+
+    def attack(self, range_, enemy_unit):
+        if not self.attacked and range_ <= self.attack_range and self.player != enemy_unit.player:
+            enemy_unit.health -= self.damage
+            self.moved = 0
+            self.attacked = True
+            self.health -= round(enemy_unit.damage / 3)
+            if enemy_unit.health <= 0:
+                self.full_health += 10
+                self.damage += 5
+            return True, enemy_unit.health <= 0
+        return False, False
