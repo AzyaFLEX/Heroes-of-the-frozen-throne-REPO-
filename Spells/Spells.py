@@ -12,10 +12,10 @@ class Spell:
 
     def is_activated(self, board):
         """:return: bool. Показывает, можно ли использовать эту способность"""
-        return board.chosen_unit.unit.moved
+        return True
 
     def can_cast(self, board, unit):
-        """:return: bool. Показывает, можно ли применить эту способность на выбраном юните"""
+        """:return: bool. Показывает, можно ли ghbvtybnm эту способность на выбраном юните"""
         return True
 
     def cast(self, board, unit=None):
@@ -34,7 +34,11 @@ class Build(Spell):
         if self.is_activated(board):
             board.players[board.turn].buff[board.chosen_unit.tile.return_useful()]\
                 += board.chosen_unit.tile.resources[board.chosen_unit.tile.return_useful()]
+            res = [0, 0, 0]
+            res[board.chosen_unit.tile.return_useful()]\
+                = board.chosen_unit.tile.resources[board.chosen_unit.tile.return_useful()]
             board.chosen_unit.tile = Field(board, board.chosen_unit.unit.player)
+            board.chosen_unit.tile.buff = res
             board.chosen_unit.unit.moved = 0
 
 

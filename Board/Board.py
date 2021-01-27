@@ -40,7 +40,6 @@ class Board:
         self.hexagons_to_attack = {}
         self.chosen_spell = None
         self.hexagon_to_cast = []
-        self.hexagons_to_stay = []
         self.changing_camera_pos = False
         self.camera_zooming = 0
         self.camera_pos = [0, 0]
@@ -48,14 +47,16 @@ class Board:
         self.change_hexagons_pos(((self.width - (self.board[-1][-1].center[0] + self.cell_size)) // 2,
                                   ((self.height - (self.board[-1][-1].center[1] + self.diagonal // 2)) // 2)))
         self.health_bars = []
+        self.tails_health_bars = []
         self.turn = 0
+        self.part = 1
         self.throne_0 = []
         self.throne_1 = []
         self.throne_menu_enable = False
         self.need_to_light_units = False
         self.players = [PlayerData(), PlayerData()]
-        self.list_of_units = [i.__name__ for i in BaseUnit.__subclasses__()]\
-                             + ['' for i in range(10 - len(BaseUnit.__subclasses__()))]
+        self.list_of_units = [i.__name__ for i in BaseUnit.__subclasses__()] +\
+                             ['' for i in range(10 - len(BaseUnit.__subclasses__()))]
         self.color_of_unit_to_buy = None
         self.middle_hex = int(self.height // (cell_size * (3 ** 0.5))) - 2
         self.generate()
@@ -79,7 +80,11 @@ class Board:
             elm.set_tile(Throne(0))
         for elm in self.throne_1:
             elm.set_tile(Throne(1))
-        for _ in range(20):
+        for _ in range(40):
+            tile = choice(self.board[randint(0, len(self.board)) - 1])
+            if tile.tile:
+                tile.tile = Mount()
+        for _ in range(25):
             tile = choice(self.board[randint(0, len(self.board)) - 1]).tile
             if tile.useful and not any(tile.resources):
                 tile.resources[randint(0, 2)] += randint(1, 3)
@@ -200,7 +205,9 @@ class Board:
                         if not any([i < 0, i >= len(self.board),
                                     j < 0 or j >= len(self.board[0]),
                                     pos == (j, i),
-                                    not self.board[i][j].tile.can_move,
+                                    (not self.board[i][j].tile.can_move
+                                     and not (self.board[i][j].tile.__class__.__name__ == "Throne"
+                                     and self.board[i][j].tile.player != self.turn)),
                                     self.board[i][j] == self.chosen_unit]):
                             if self.board[i][j] not in union_dict:
                                 union_dict[self.board[i][j]] = num_
@@ -221,9 +228,12 @@ class Board:
                             new += add_to_hexagons_to_move(elm, num + 1)
                     to_do = new[:]
                 for elm in union_dict.keys():
-                    if self.chosen_unit.unit.moved >= union_dict[elm]:
+                    if self.chosen_unit.unit.moved >= union_dict[elm] and elm.tile.__class__.__name__ != "Throne":
                         self.hexagons_to_move[elm] = union_dict[elm]
                     if elm.unit and elm.unit.player != self.turn \
+                            and self.chosen_unit.unit.attack_range >= union_dict[elm]:
+                        self.hexagons_to_attack[elm] = union_dict[elm]
+                    if elm.tile is not None and elm.tile.can_be_attacked and elm.tile.player != self.turn \
                             and self.chosen_unit.unit.attack_range >= union_dict[elm]:
                         self.hexagons_to_attack[elm] = union_dict[elm]
             if self.chosen_spell:
@@ -258,9 +268,9 @@ class Board:
                     add_to_hexagons_to_move(elm, 1)
                 self.hexagons_to_stay = list(set(union_dict.keys()))
                 empty_hexagons = []
-                for i in self.hexagons_to_stay:
-                    if not i.unit:
-                        empty_hexagons.append(i)
+                for num in self.hexagons_to_stay:
+                    if not num.unit:
+                        empty_hexagons.append(num)
                 self.hexagons_to_stay = empty_hexagons
                 for elm in union_dict:
                     if elm.unit is None:
@@ -271,9 +281,9 @@ class Board:
                     add_to_hexagons_to_move(elm, 1)
                 self.hexagons_to_stay = list(set(union_dict.keys()))
                 empty_hexagons = []
-                for i in self.hexagons_to_stay:
-                    if not i.unit:
-                        empty_hexagons.append(i)
+                for num in self.hexagons_to_stay:
+                    if not num.unit:
+                        empty_hexagons.append(num)
                 self.hexagons_to_stay = empty_hexagons
                 for elm in union_dict:
                     if elm.unit is None:
@@ -408,13 +418,45 @@ class Board:
                              (hexagon.center[0] - self.cell_size,
                               hexagon.center[1] - self.diagonal // 2 - self.diagonal / 6,
                               self.cell_size * 2, self.diagonal / 6), 1)
+        for hexagon in self.tails_health_bars:
+            pygame.draw.rect(self.screen, Color("black"),
+                             (hexagon.center[0] - self.cell_size,
+                              hexagon.center[1] - self.diagonal // 2 - self.diagonal / 6,
+                              self.cell_size * 2, self.diagonal / 6))
+            health_per_cent = (hexagon.tile.health / hexagon.tile.full_health) * 100
+            if 0 <= health_per_cent <= 25:
+                color = Color("red")
+            elif 25 <= health_per_cent <= 50:
+                color = Color("orange")
+            elif 50 <= health_per_cent <= 75:
+                color = Color("yellow")
+            else:
+                color = Color("green")
+            pygame.draw.rect(self.screen, Color("black"),
+                             (hexagon.center[0] - self.cell_size,
+                              hexagon.center[1] - self.diagonal // 2 - self.diagonal / 6,
+                              self.cell_size * 2, self.diagonal / 6))
+            pygame.draw.rect(self.screen, color,
+                             (hexagon.center[0] - self.cell_size,
+                              hexagon.center[1] - self.diagonal // 2 - self.diagonal / 6,
+                              self.cell_size * 2 * (health_per_cent / 100), self.diagonal / 6))
+            pygame.draw.rect(self.screen, Color("white"),
+                             (hexagon.center[0] - self.cell_size,
+                              hexagon.center[1] - self.diagonal // 2 - self.diagonal / 6,
+                              self.cell_size * 2, self.diagonal / 6), 1)
 
     def hud(self):
         if self.chosen_unit:
-            start_pos = (0, 4 * (self.height / 5))
+            # TODO
+            start_pos = (0 if not (self.throne_menu_enable and self.turn == 1) else
+                         (self.height - 80) // 5 * 2 + 80, 4 * (self.height / 5))
             hud_width = 6 * (self.width / 12)
             hud_height = self.height - 4 * (self.height / 5)
             indent = hud_height // 15
+            if not (self.throne_menu_enable and self.turn == 1):
+                flex = 0
+            else:
+                flex = (self.height - 80) // 5 * 2 + 80
             text_x = hud_height
             bar_width = hud_width - indent - text_x
             pygame.draw.rect(self.screen, pygame.Color("black"),
@@ -425,19 +467,19 @@ class Board:
                                (start_pos[0] + hud_height // 2, start_pos[1] + hud_height // 2),
                                hud_height // 2 - hud_height // 15, 2)
             char_class = pygame.font.Font(None, 30).render(str(self.chosen_unit.unit), True, (255, 255, 255))
-            self.screen.blit(char_class, ((text_x + (bar_width - char_class.get_width()) // 2),
+            self.screen.blit(char_class, ((text_x + (bar_width - char_class.get_width()) // 2 + flex),
                                           start_pos[1] + indent))
             text = f"{self.chosen_unit.unit.moved}/{self.chosen_unit.unit.moves_per_round}"
             attack = pygame.font.Font(
                 None, 26).render(
                 f"АТК: {self.chosen_unit.unit.damage}    ХОД: {text}", True, (255, 255, 255))
-            self.screen.blit(attack, ((text_x + (bar_width - attack.get_width()) // 2),
+            self.screen.blit(attack, ((text_x + (bar_width - attack.get_width()) // 2 + flex),
                                       start_pos[1] + (2 * indent) // 2 + char_class.get_height()))
-            self.draw_double_bar(("red", "white"), (text_x, start_pos[1] + 2 * indent + attack.get_height()
+            self.draw_double_bar(("red", "white"), (text_x + flex, start_pos[1] + 2 * indent + attack.get_height()
                                                     + char_class.get_height(), bar_width, 1.3 * indent),
                                  self.chosen_unit.unit.health / (self.chosen_unit.unit.full_health / 100), 1)
             if self.chosen_unit.unit.mana:
-                self.draw_double_bar(("blue", "white"), (text_x, start_pos[1] + 4 * indent + attack.get_height()
+                self.draw_double_bar(("blue", "white"), (text_x + flex, start_pos[1] + 4 * indent + attack.get_height()
                                                          + char_class.get_height(), bar_width, 1.3 * indent),
                                      self.chosen_unit.unit.mana / (self.chosen_unit.unit.full_mana / 100), 1)
             count_spells = len(list(filter(lambda x: x, self.chosen_unit.unit.spells)))
@@ -447,7 +489,7 @@ class Board:
             left_tab = ((4 * spell_box_side + 3 * tab) - (count_spells * spell_box_side + (count_spells - 1) * tab)) / 2
             for num in range(count_spells):
                 pygame.draw.rect(self.screen, pygame.Color("white"),
-                                 (left_tab + text_x + (spell_box_side + tab) * num,
+                                 (left_tab + text_x + (spell_box_side + tab) * num + flex,
                                   top_tab, spell_box_side, spell_box_side), 1)
 
     def refresh_everything(self):
@@ -481,16 +523,15 @@ class Board:
                                             or (self.turn and self.chose_tile(event.pos) in self.throne_1)):
                                         self.chosen_unit = None
                                         self.throne_menu_enable = not self.throne_menu_enable
-                                        self.board[self.middle_hex // 2][-1 * self.turn].unit = None
                                     elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
                                         self.use_throne_menu(event.pos)
                                     elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
                                         self.use_throne_menu(event.pos)
-                                    elif self.chosen_unit and self.throne_menu_enable and\
+                                    elif self.chosen_unit and self.throne_menu_enable and \
                                             not self.click_in_throne_menu(event.pos) and self.hexagons_to_stay:
                                         self.move_unit(chosen_hexagon)
                                     elif self.chosen_unit and self.click_in_hud(event.pos):
-                                        self.use_hud(event.pos)
+                                        pass
                                     elif self.chosen_unit:
                                         if chosen_hexagon.unit:
                                             if chosen_hexagon.unit.player == self.turn:
@@ -512,7 +553,30 @@ class Board:
                                     elif self.click_in_hud(event.pos):
                                         pass
                                     elif self.chosen_unit:
-                                        if chosen_hexagon.unit is None:
+                                        if chosen_hexagon.tile is not None and chosen_hexagon.tile.can_be_attacked \
+                                                and chosen_hexagon.tile.player != self.turn \
+                                                and chosen_hexagon in self.hexagons_to_attack \
+                                                and not self.chosen_unit.unit.attacked:
+                                            chosen_hexagon.tile.health -= self.chosen_unit.unit.damage
+                                            if chosen_hexagon.tile.health <= 0:
+                                                if chosen_hexagon.tile.__class__.__name__ == "Field":
+                                                    need = 0
+                                                    for i in range(3):
+                                                        if chosen_hexagon.tile.buff[i]:
+                                                            need = i
+                                                            break
+                                                    self.players[0 if self.turn else 1].buff[need] \
+                                                        -= chosen_hexagon.tile.buff[need]
+                                                self.tails_health_bars.remove(chosen_hexagon)
+                                                chosen_hexagon.tile = BaseTile()
+                                                del self.hexagons_to_attack[chosen_hexagon]
+                                            else:
+                                                if chosen_hexagon not in self.tails_health_bars:
+                                                    self.tails_health_bars += [chosen_hexagon]
+                                            self.chosen_unit.unit.attacked = True
+                                            self.chosen_unit.unit.moved = 0
+                                            self.hexagons_to_move = {}
+                                        elif chosen_hexagon.unit is None:
                                             self.move_unit(chosen_hexagon)
                                         elif chosen_hexagon.unit.player == self.turn:
                                             if chosen_hexagon == self.chosen_unit:
@@ -533,9 +597,19 @@ class Board:
                                                         self.health_bars.remove(self.chosen_unit)
                                                         chosen_hexagon.unit = self.chosen_unit.unit
                                                         self.chosen_unit.unit = None
+                                                        if chosen_hexagon.unit.health < 0:
+                                                            self.health_bars.remove(chosen_hexagon)
+                                                            chosen_hexagon.unit = None
                                                     else:
                                                         self.health_bars.remove(chosen_hexagon)
                                                         chosen_hexagon.unit = None
+                                                        if self.chosen_unit.unit.health < 0:
+                                                            self.health_bars.remove(self.chosen_unit)
+                                                            self.chosen_unit.unit = None
+                                                else:
+                                                    if self.chosen_unit.unit.health < 0:
+                                                        self.health_bars.remove(self.chosen_unit)
+                                                        self.chosen_unit.unit = None
                                                 self.clear_chosen_unit()
                                         else:
                                             self.clear_chosen_unit()
@@ -555,6 +629,21 @@ class Board:
                         else:
                             self.turn = 0 if self.turn else 1
                             self.refresh_everything()
+                            self.part += 1
+                            if self.part == 50:
+                                for i in range(len(self.board)):
+                                    for j in range(len(self.board[0])):
+                                        if self.board[i][j].tile and any(self.board[i][j].tile.resources):
+                                            self.board[i][j].tile.resources = [0, 0, 0]
+                                        if self.board[i][j].tile.__class__.__name__ == "Field":
+                                            self.board[i][j].tile = BaseTile()
+                                for elm in self.players:
+                                    elm.buff = [0, 0, 0]
+                                for _ in range(30):
+                                    tile = choice(self.board[randint(0, len(self.board)) - 1]).tile
+                                    if tile.useful and not any(tile.resources):
+                                        tile.resources[randint(0, 2)] += randint(2, 4)
+                                self.part = 1
                 elif event.button == 2:
                     self.changing_camera_pos = True
                 elif event.button == 4:
@@ -615,13 +704,6 @@ class Board:
                                        self.diagonal / 7)
 
     def render(self):
-        self.board[0][0].set_unit(BaseUnit(0, self.board[0][0]))
-        self.board[0][4].set_unit(Worker(0, self.board[0][4]))
-        self.board[0][5].set_unit(Warrior(0, self.board[0][5]))
-        self.board[1][5].set_unit(Warrior(0, self.board[1][5]))
-        self.board[1][4].set_unit(Warrior(1, self.board[1][4]))
-        self.board[2][4].set_unit(Wizard(0, self.board[2][4]))
-        self.board[3][3].set_tile(Mount())
         pygame.init()
         clock = pygame.time.Clock()
         while self.rendering:

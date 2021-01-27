@@ -20,9 +20,6 @@ class BaseTile:
             if self.resources[i]:
                 return i
 
-    def update(self):
-        pass
-
 
 class Mount(BaseTile):
     def __init__(self):
@@ -33,17 +30,20 @@ class Mount(BaseTile):
 class Throne(BaseTile):
     def __init__(self, player):
         super().__init__(False, False, True)
-        self.color = Color("yellow")
+        self.color = "red" if player else "blue"
         self.player = player
+        self.can_be_attacked = True
+        self.full_health = 300
+        self.health = 300
 
 
 class Field(BaseTile):
     def __init__(self, board, player):
         super().__init__(True, False, True)
-        self.color = Color("orange")
+        self.buff = [0, 0, 0]
+        self.color = "#ff7373" if player else "#73fdff"
         self.player = player
         self.board = board
-
-    def update(self):
-        pass
-
+        self.can_be_attacked = True
+        self.full_health = 50
+        self.health = 50
