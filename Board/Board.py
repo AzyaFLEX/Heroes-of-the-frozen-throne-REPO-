@@ -38,6 +38,7 @@ class Board:
         self.chosen_unit = None
         self.hexagons_to_move = {}
         self.hexagons_to_attack = {}
+        self.hexagons_to_stay = []
         self.chosen_spell = None
         self.hexagon_to_cast = []
         self.changing_camera_pos = False
