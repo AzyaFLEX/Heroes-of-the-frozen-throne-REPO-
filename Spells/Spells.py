@@ -72,7 +72,7 @@ class Mana_regen(Spell):
         self.casting = True
         self.use_on_himself = True
         self.range = 4
-        self.casted = 2
+        self.casted = 1
         self.max_cast = self.casted
         self.mana_cost = True
 
@@ -86,5 +86,28 @@ class Mana_regen(Spell):
             board.chosen_unit.unit.mana -= 4
             unit.unit.mana += 5 if not unit.unit.mana + 5 > unit.unit.full_mana \
                 else unit.unit.full_mana - unit.unit.mana
+            if self.casted != -1:
+                self.casted -= 1
+
+
+class Genjitsu(Spell):
+    def __init__(self):
+        super().__init__()
+        self.casting = True
+        self.use_on_himself = True
+        self.range = 4
+        self.casted = 1
+        self.max_cast = self.casted
+        self.mana_cost = True
+
+    def can_cast(self, board, unit):
+        if board.turn != unit.player:
+            return True
+        return False
+
+    def cast(self, board, unit=None):
+        if self.is_activated(board) and unit and self.casted and board.chosen_unit.unit.mana >= 80:
+            unit.unit.player = 0 if unit.unit.player else 1
+            board.chosen_unit.unit.mana -= 80
             if self.casted != -1:
                 self.casted -= 1

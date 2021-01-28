@@ -1,4 +1,3 @@
-import pygame
 import os
 from Board.Board import *
 
@@ -34,13 +33,14 @@ class Menu:
         self.rendering = False
 
     def start_game(self):
-        game = Board(1080, 720, 20)
+        game = Board(1600, 800, 20)
         game.render()
         self.screen = pygame.display.set_mode((self.width, self.height))
 
-    def about_game(self):
+    @staticmethod
+    def about_game():
         try:
-            os.startfile("..\Data\info.txt")
+            os.startfile("..\\Data\\info.txt")
         except FileNotFoundError:
             pass
 

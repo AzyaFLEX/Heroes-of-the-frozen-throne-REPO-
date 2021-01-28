@@ -89,6 +89,17 @@ class Warrior(BaseUnit):
         self.color = "#344570" if not player else "#703444"
 
 
+class Archer(BaseUnit):
+    def __init__(self, player, hexagon):
+        super().__init__(player, hexagon, 5, 4)
+        self.health = 10
+        self.mana = 0
+        self.cost = [15, 15, 0]
+        self.damage = 15
+        self.get_full()
+        self.color = "#B9F73E" if not player else "#9F3ED5"
+
+
 class Morphling(BaseUnit):
     def __init__(self, player, hexagon):
         super().__init__(player, hexagon, 3, 4)
@@ -113,6 +124,17 @@ class Wizard(BaseUnit):
         self.color = "#22d5ba" if not player else "#d522a5"
 
 
+class Tank(BaseUnit):
+    def __init__(self, player, hexagon):
+        super().__init__(player, hexagon, 3, 1)
+        self.health = 100
+        self.mana = 0
+        self.cost = [10, 40, 3]
+        self.damage = 20
+        self.get_full()
+        self.color = "#A69F00" if not player else "#3F046F"
+
+
 class Hunter(BaseUnit):
     def __init__(self, player, hexagon):
         super().__init__(player, hexagon, 5, 2)
@@ -134,3 +156,15 @@ class Hunter(BaseUnit):
                 self.damage += 5
             return True, enemy_unit.health <= 0
         return False, False
+
+
+class Itachi(BaseUnit):
+    def __init__(self, player, hexagon):
+        super().__init__(player, hexagon, 3, 1)
+        self.health = 20
+        self.mana = 80
+        self.cost = [40, 40, 40]
+        self.spells[0] = Genjitsu()
+        self.damage = 10
+        self.get_full()
+        self.color = "#1D8C00" if not player else "#9F0013"
