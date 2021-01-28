@@ -89,11 +89,23 @@ class Warrior(BaseUnit):
         self.color = "#344570" if not player else "#703444"
 
 
+class Morphling(BaseUnit):
+    def __init__(self, player, hexagon):
+        super().__init__(player, hexagon, 3, 4)
+        self.spells[0] = Mana_regen()
+        self.health = 25
+        self.mana = 10
+        self.cost = [15, 15, 2]
+        self.damage = 15
+        self.get_full()
+        self.color = "#37DA7E" if not player else "#FF6B40"
+
+
 class Wizard(BaseUnit):
     def __init__(self, player, hexagon):
         super().__init__(player, hexagon, 3, 3)
         self.spells[0] = Heal()
-        self.health = 30
+        self.health = 40
         self.mana = 20
         self.cost = [25, 30, 5]
         self.damage = 30

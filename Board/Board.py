@@ -236,7 +236,8 @@ class Board:
                             new += add_to_hexagons_to_move(elm, num + 1)
                     to_do = new[:]
                 for elm in union_dict.keys():
-                    if self.chosen_unit.unit.moved >= union_dict[elm] and elm.tile.__class__.__name__ != "Throne":
+                    if self.chosen_unit.unit.moved >= union_dict[elm] and elm.tile.__class__.__name__ != "Throne" \
+                            and not (elm.tile.__class__.__name__ == "Field" and elm.tile.player != self.turn):
                         self.hexagons_to_move[elm] = union_dict[elm]
                     if elm.unit and elm.unit.player != self.turn \
                             and self.chosen_unit.unit.attack_range >= union_dict[elm]:
@@ -265,9 +266,10 @@ class Board:
                 pygame.draw.circle(self.screen, pygame.Color("red"),
                                    self.board[elm.index[1]][elm.index[0]].center, 2, 5)
                 pygame.draw.polygon(self.screen, pygame.Color("red"), elm.points, 3)
-            for elm in self.hexagon_to_cast:
-                if elm.unit and self.chosen_spell and self.chosen_spell.can_cast(self, elm.unit):
-                    pygame.draw.polygon(self.screen, pygame.Color("yellow"), elm.points, 3)
+            if self.chosen_spell and not self.chosen_spell.mana_cost or self.chosen_unit.unit.mana:
+                for elm in self.hexagon_to_cast:
+                    if elm.unit and self.chosen_spell and self.chosen_spell.can_cast(self, elm.unit):
+                        pygame.draw.polygon(self.screen, pygame.Color("yellow"), elm.points, 3)
 
         if self.throne_menu_enable:
             union_dict = {}
@@ -354,6 +356,9 @@ class Board:
                     self.hexagons_to_stay = []
                     for i in range(3):
                         self.players[self.turn].resources[i] -= self.chosen_unit.unit.cost[i]
+                    for spell in self.chosen_unit.unit.spells:
+                        if spell:
+                            spell.casted = spell.max_cast
                 else:
                     self.board[self.middle_hex // 2][-1 * self.turn].unit = None
                     self.clear_chosen_unit()
@@ -395,6 +400,9 @@ class Board:
                 self.chosen_unit = self.board[i][j]
                 self.color_of_unit_to_buy = self.board[i][j].unit.get_color()
                 self.board[i][j].unit.change_color(Color("red" if self.turn else "blue"))
+                for spell in self.board[i][j].unit.spells:
+                    if spell:
+                        spell.casted = 0
             else:
                 self.board[self.middle_hex // 2][-1 * self.turn].unit = None
                 self.clear_chosen_unit()
