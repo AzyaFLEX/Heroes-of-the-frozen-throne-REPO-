@@ -33,8 +33,10 @@ class Board:
                                          ))))
                        for j in range(int(self.width // (cell_size * 3)) * 2 - 1)]
                       for i in range(int(self.height // (cell_size * (3 ** 0.5))) - 2)]
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.width = self.screen.get_width()
+        self.height = self.screen.get_height()
         self.one_d_board = [i for j in self.board for i in j]
-        self.screen = pygame.display.set_mode((self.width, self.height))
         self.chosen_unit = None
         self.hexagons_to_move = {}
         self.hexagons_to_attack = {}
@@ -60,6 +62,7 @@ class Board:
                              ['' for i in range(10 - len(BaseUnit.__subclasses__()))]
         self.color_of_unit_to_buy = None
         self.middle_hex = int(self.height // (cell_size * (3 ** 0.5))) - 2
+        self.clicked_throne = None
         self.generate()
 
     def generate(self):
@@ -236,15 +239,16 @@ class Board:
                             new += add_to_hexagons_to_move(elm, num + 1)
                     to_do = new[:]
                 for elm in union_dict.keys():
-                    if self.chosen_unit.unit.moved >= union_dict[elm] and elm.tile.__class__.__name__ != "Throne" \
-                            and not (elm.tile.__class__.__name__ == "Field" and elm.tile.player != self.turn):
-                        self.hexagons_to_move[elm] = union_dict[elm]
-                    if elm.unit and elm.unit.player != self.turn \
-                            and self.chosen_unit.unit.attack_range >= union_dict[elm]:
-                        self.hexagons_to_attack[elm] = union_dict[elm]
-                    if elm.tile is not None and elm.tile.can_be_attacked and elm.tile.player != self.turn \
-                            and self.chosen_unit.unit.attack_range >= union_dict[elm]:
-                        self.hexagons_to_attack[elm] = union_dict[elm]
+                    if not self.clicked_throne:
+                        if self.chosen_unit.unit.moved >= union_dict[elm] and elm.tile.__class__.__name__ != "Throne" \
+                                and not (elm.tile.__class__.__name__ == "Field" and elm.tile.player != self.turn):
+                            self.hexagons_to_move[elm] = union_dict[elm]
+                        if elm.unit and elm.unit.player != self.turn \
+                                and self.chosen_unit.unit.attack_range >= union_dict[elm]:
+                            self.hexagons_to_attack[elm] = union_dict[elm]
+                        if elm.tile is not None and elm.tile.can_be_attacked and elm.tile.player != self.turn \
+                                and self.chosen_unit.unit.attack_range >= union_dict[elm]:
+                            self.hexagons_to_attack[elm] = union_dict[elm]
             if self.chosen_spell:
                 to_do = [self.chosen_unit]
                 union_dict = {}
@@ -342,7 +346,7 @@ class Board:
                 self.hexagons_to_move = {}
                 self.hexagons_to_attack = {}
         elif to_hexagon in self.hexagons_to_stay:
-            if self.chosen_unit == self.board[self.middle_hex // 2][-1 * self.turn]:
+            if self.chosen_unit == self.board[self.clicked_throne[1]][self.clicked_throne[0]]:
                 if all(self.chosen_unit.unit.cost[i] <= self.players[self.turn].resources[i] for i in range(3)):
                     self.chosen_unit.unit.change_color(self.color_of_unit_to_buy)
                     self.chosen_unit.unit.hexagon = to_hexagon
@@ -359,8 +363,9 @@ class Board:
                     for spell in self.chosen_unit.unit.spells:
                         if spell:
                             spell.casted = spell.max_cast
+                    self.clicked_throne = None
                 else:
-                    self.board[self.middle_hex // 2][-1 * self.turn].unit = None
+                    self.board[self.clicked_throne[1]][self.clicked_throne[0]].unit = None
                     self.clear_chosen_unit()
         else:
             self.clear_chosen_unit()
@@ -394,7 +399,7 @@ class Board:
         x, y = pos[0] - start_pos[0] - 20, pos[1] - 40
         if 0 <= x <= a * 2 and 0 <= y <= a * 5:
             unit_to_buy_name = self.list_of_units[y // a * 2:y // a * 2 + 2][x // a]
-            i, j = self.middle_hex // 2, -1 * self.turn
+            j, i = self.clicked_throne
             if unit_to_buy_name:
                 eval(f"self.board[{i}][{j}].set_unit({unit_to_buy_name}({self.turn}, self.board[{i}][{j}]))")
                 self.chosen_unit = self.board[i][j]
@@ -404,7 +409,7 @@ class Board:
                     if spell:
                         spell.casted = 0
             else:
-                self.board[self.middle_hex // 2][-1 * self.turn].unit = None
+                self.board[i][j].unit = None
                 self.clear_chosen_unit()
 
     def health_bar(self):
@@ -537,9 +542,11 @@ class Board:
                                 if not self.hexagons_to_move:
                                     if ((not self.turn and self.chose_tile(event.pos) in self.throne_0)
                                             or (self.turn and self.chose_tile(event.pos) in self.throne_1)):
-                                        self.board[self.middle_hex // 2][-1 * self.turn].unit = None
+                                        if self.throne_menu_enable:
+                                            self.board[self.clicked_throne[1]][self.clicked_throne[0]].unit = None
                                         self.clear_chosen_unit()
                                         self.throne_menu_enable = not self.throne_menu_enable
+                                        self.clicked_throne = chosen_hexagon.index if self.throne_menu_enable else None
                                     elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
                                         self.use_throne_menu(event.pos)
                                     elif self.throne_menu_enable and self.click_in_throne_menu(event.pos):
