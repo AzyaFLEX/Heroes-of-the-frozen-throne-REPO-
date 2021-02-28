@@ -3,11 +3,11 @@ from Board.Board import *
 
 
 class Menu:
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
+    def __init__(self):
         self.rendering = True
-        self.screen = pygame.display.set_mode((self.width, self.height))
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.width = self.screen.get_width()
+        self.height = self.screen.get_height()
         self.fps = 60
 
     def draw(self):
@@ -35,7 +35,7 @@ class Menu:
     def start_game(self):
         game = Board(1600, 800, 20)
         game.render()
-        self.screen = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 
     @staticmethod
     def about_game():
@@ -68,5 +68,5 @@ class Menu:
             clock.tick(self.fps)
 
 
-test = Menu(480, 480)
+test = Menu()
 test.render()

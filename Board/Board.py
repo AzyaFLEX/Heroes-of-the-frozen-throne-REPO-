@@ -63,6 +63,11 @@ class Board:
         self.color_of_unit_to_buy = None
         self.middle_hex = int(self.height // (cell_size * (3 ** 0.5))) - 2
         self.clicked_throne = None
+        self.mouse_pos = (0, 0)
+        self.cost = {}
+        for i in BaseUnit.__subclasses__():
+            class_ = i(1, 1)
+            self.cost[str(class_)] = class_.cost
         self.generate()
 
     def generate(self):
@@ -394,23 +399,26 @@ class Board:
         self.hexagons_to_attack = {}
 
     def use_throne_menu(self, pos):
-        start_pos = (20 if self.turn else self.width - 60 - (self.height - 40) // 5 * 2, 20)
-        a = (self.height - 80) // 5
-        x, y = pos[0] - start_pos[0] - 20, pos[1] - 40
-        if 0 <= x <= a * 2 and 0 <= y <= a * 5:
-            unit_to_buy_name = self.list_of_units[y // a * 2:y // a * 2 + 2][x // a]
-            j, i = self.clicked_throne
-            if unit_to_buy_name:
-                eval(f"self.board[{i}][{j}].set_unit({unit_to_buy_name}({self.turn}, self.board[{i}][{j}]))")
-                self.chosen_unit = self.board[i][j]
-                self.color_of_unit_to_buy = self.board[i][j].unit.get_color()
-                self.board[i][j].unit.change_color(Color("red" if self.turn else "blue"))
-                for spell in self.board[i][j].unit.spells:
-                    if spell:
-                        spell.casted = 0
-            else:
-                self.board[i][j].unit = None
-                self.clear_chosen_unit()
+        try:
+            start_pos = (20 if self.turn else self.width - 60 - (self.height - 40) // 5 * 2, 20)
+            a = (self.height - 80) // 5
+            x, y = pos[0] - start_pos[0] - 20, pos[1] - 40
+            if 0 <= x <= a * 2 and 0 <= y <= a * 5:
+                unit_to_buy_name = self.list_of_units[y // a * 2:y // a * 2 + 2][x // a]
+                j, i = self.clicked_throne
+                if unit_to_buy_name:
+                    eval(f"self.board[{i}][{j}].set_unit({unit_to_buy_name}({self.turn}, self.board[{i}][{j}]))")
+                    self.chosen_unit = self.board[i][j]
+                    self.color_of_unit_to_buy = self.board[i][j].unit.get_color()
+                    self.board[i][j].unit.change_color(Color("red" if self.turn else "blue"))
+                    for spell in self.board[i][j].unit.spells:
+                        if spell:
+                            spell.casted = 0
+                else:
+                    self.board[i][j].unit = None
+                    self.clear_chosen_unit()
+        except BaseException as error:
+            print(1, error)
 
     def health_bar(self):
         for hexagon in self.health_bars:
@@ -685,6 +693,8 @@ class Board:
                     if self.camera_zooming - 1 >= -1:
                         self.change_hexagons_size(self.cell_size - 5, event.pos)
                         self.camera_zooming -= 1
+            elif event.type == pygame.MOUSEMOTION:
+                self.mouse_pos = event.pos
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 2:
                     self.changing_camera_pos = False
@@ -720,6 +730,8 @@ class Board:
                                 self.chosen_spell = None
                             else:
                                 self.chosen_spell = self.chosen_unit.unit.spells[spell]
+                elif event.key == pygame.K_ESCAPE and pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    self.rendering = False
 
     def draw_resources(self):
         for i in range(len(self.board)):
@@ -733,6 +745,26 @@ class Board:
                                        (self.board[i][j].center[0],
                                         self.board[i][j].center[1] + self.diagonal / 3 + self.diagonal / 24),
                                        self.diagonal / 7)
+
+    def draw_price(self):
+        if self.throne_menu_enable and self.click_in_throne_menu(self.mouse_pos):
+            pos = self.mouse_pos
+            start_pos = (20 if self.turn else self.width - 60 - (self.height - 40) // 5 * 2, 20)
+            a = (self.height - 80) // 5
+            x, y = pos[0] - start_pos[0] - 20, pos[1] - 40
+            try:
+                if x // a == -1:
+                    raise IndexError
+                unit_to_buy_name = self.list_of_units[y // a * 2:y // a * 2 + 2][x // a]
+            except IndexError:
+                return
+            if unit_to_buy_name in self.cost:
+                pygame.draw.rect(self.screen, pygame.Color("black"),
+                                 (self.mouse_pos[0] - a * 0.5, self.mouse_pos[1] - a / 8, a, a / 8))
+                data = pygame.font.Font(None, 26).render(
+                    f"{unit_to_buy_name}: {', '.join(map(str, self.cost[unit_to_buy_name]))}", True, (255, 255, 255))
+                self.screen.blit(data, (self.mouse_pos[0] - a * 0.5 + (a - data.get_width()) / 2,
+                                        self.mouse_pos[1] - a / 8 + (a / 8 - data.get_height()) / 2, a, a / 8))
 
     def render(self):
         pygame.init()
@@ -748,6 +780,7 @@ class Board:
             self.hud()
             self.draw_display()
             self.draw_throne_window()
+            self.draw_price()
             self.update()
             pygame.display.flip()
             clock.tick(self.fps)
