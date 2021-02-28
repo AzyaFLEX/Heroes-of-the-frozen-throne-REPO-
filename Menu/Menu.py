@@ -40,7 +40,7 @@ class Menu:
     @staticmethod
     def about_game():
         try:
-            os.startfile("..\\Data\\info.txt")
+            os.startfile("..\\Data\\Руководство.docx")
         except FileNotFoundError:
             pass
 
